@@ -1,0 +1,20 @@
+project:
+  structure: [site, sensor, trial]
+  site: 
+    - horsham 
+    - adelaide 
+  sensor: 
+    - oak
+    - hyperspec 
+    - lidar 
+    - jai 
+
+file:
+  bin:
+    sep: '_'
+    order: [date, site, sensor, trial]
+    fields: 
+      date: '\d{8}-\d{6}'
+      site: '[^._]+'
+      sensor: '[^._]+'
+      trial: '[^._]+'
