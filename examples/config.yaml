@@ -1,20 +1,13 @@
-project:
-  structure: [site, sensor, trial]
-  site: 
-    - horsham 
-    - adelaide 
-  sensor: 
-    - oak
-    - hyperspec 
-    - lidar 
-    - jai 
-
-file:
-  bin:
-    sep: '_'
-    order: [date, site, sensor, trial]
-    fields: 
-      date: '\d{8}-\d{6}'
-      site: '[^._]+'
-      sensor: '[^._]+'
-      trial: '[^._]+'
+version: 0.0.1
+naming_convention: 
+  sep: "_" 
+  structure: ['year', 'summary', 'internal', 'researcher', 'organisation']
+layout: ['site', 'sensor', 'trial'] 
+file: 
+  bin: 
+    sep: "_"
+    format: 
+      - ['date', '\d{8}-\d{6}']
+      - ['site', '[^_.]+']
+      - ['sensor', '[^_.]+']
+      - ['trial', '[^_.]+']

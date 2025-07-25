@@ -1,0 +1,14 @@
+layout: [site, sensor, trial]
+file:
+  bin:
+    sep: _
+    format: [[date, '\d{8}-\d{6}'], [site, '[^_.]+'], [sensor, '[^_.]+'], [trial,
+          '[^_.]+']]
+naming_convention:
+  sep: _
+  structure: [year, summary, internal, researcher, organisation]
+year: 2024
+summary: test project
+internal: true
+researcher: hoang son le
+organisation: appn
