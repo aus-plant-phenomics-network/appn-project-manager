@@ -15,7 +15,7 @@ from src.exceptions import (
     ProjectNotFoundErr,
     UnsupportedFileExtension,
 )
-from src.parser import ExtDecl, ProjectMetadata
+from src.model import ExtDecl, ProjectMetadata
 
 yaml = YAML()
 yaml.indent(mapping=2, sequence=4, offset=2)
