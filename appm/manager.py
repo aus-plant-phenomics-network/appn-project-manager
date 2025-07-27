@@ -126,7 +126,7 @@ class ProjectManager:
 
     def save_metadata(self) -> None:
         """Save the current metadata to the project location"""
-        metadata_path = self.root / self.METADATA_NAME
+        metadata_path = self.location / self.METADATA_NAME
         with metadata_path.open("w") as file:
             data = self.metadata.model_dump(mode="json")
             data["version"] = __version__
@@ -135,12 +135,12 @@ class ProjectManager:
                 file,
             )
 
-    def copy_file(self, src_path: Path) -> None:
+    def copy_file(self, src_path: str | Path) -> None:
         """Copy a file located at `src_path` to an appropriate
         location in the project.
 
         Args:
-            src_path (Path): path to where src data is found
+            src_path (str | Path): path to where src data is found
         """
         src_path = validate_path(src_path)
         dst_path = self.location / self.get_file_placement(src_path.name)

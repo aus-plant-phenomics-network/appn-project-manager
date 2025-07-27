@@ -5,7 +5,7 @@ from pydantic import BaseModel, model_validator
 from appm.__version__ import __version__
 from appm.utils import slugify
 
-STRUCTURES = {"year", "summary", "internal", "researcher", "organisation"}
+STRUCTURES = {"year", "summary", "internal", "researcherName", "organisationName"}
 
 
 class ExtDecl(BaseModel):
@@ -22,8 +22,7 @@ class ExtDecl(BaseModel):
     - `trial`: `trial-alph`
 
     Components are defined using the format parameter which is a list of string pairs, the
-    first being the field name and the second being its regex pattern. For instance,
-    the `date` component in the previous example can be defined as `['date', "\d{8}-\d{6}"]`.
+    first being the field name and the second being its regex pattern.
 
     The order at which a field definition (a string pair) appears in the `format` list must
     match how the field value appears in the matching file name. In the previous example, since date is the first
@@ -55,7 +54,7 @@ class NamingConvDecl(BaseModel):
 
     Note that the structural components must come from the metadata fields - i.e. year, summary etc,
     and hence the parameter `structure` must be a valid permutation of a non empty subset of
-    `{"year", "summary", "internal", "researcher", "organisation"}`. This means that the parameter
+    `{"year", "summary", "internal", "researcherName", "organisationName"}`. This means that the parameter
     structure:
     - cannot be empty
     - cannot have repeated component(s)
@@ -69,7 +68,13 @@ class NamingConvDecl(BaseModel):
 
     sep: str = "_"
     "Project name separator"
-    structure: list[str] = ["year", "summary", "internal", "researcher", "organisation"]
+    structure: list[str] = [
+        "year",
+        "summary",
+        "internal",
+        "researcherName",
+        "organisationName",
+    ]
     """Project name format components"""
 
     @model_validator(mode="after")
@@ -123,20 +128,7 @@ class ProjectTemplateDecl(BaseModel):
 
     Example:
 
-    Given
-    `layout: ['site', 'sensor', 'trial']`
-
-    ```
-    file:
-        bin:
-            sep: "_"
-                format:
-                - ['date', '\d{8}-\d{6}']
-                - ['site', '[^_.]+']
-                - ['sensor', '[^_.]+']
-                - ['trial', '[^_.]+']
-    ```
-    The file `20200101-100000_adelaide_oak_trial-alpha.bin` will be placed into
+    Given the standard template, the file `20200101-100000_adelaide_oak_trial-alpha.bin` will be placed into
     `{project_name}/adelaide/oak/trial-alpha/20200101-100000_adelaide_oak_trial-alpha.bin`
 
     """
