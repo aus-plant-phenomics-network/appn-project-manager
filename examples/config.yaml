@@ -2,7 +2,7 @@ version: 0.0.1
 naming_convention: 
   sep: "_" 
   structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName']
-layout: ['site', 'sensor', 'trial'] 
+layout: ['site', 'sensor', 'trial', 'procLevel'] 
 file: 
   "*": 
     sep: "_"
@@ -11,3 +11,4 @@ file:
       - ['site', '[^_.]+']
       - ['sensor', '[^_.]+']
       - ['trial', '[^_.]+']
+      - ['procLevel', '(raw|proc|trait)?']
