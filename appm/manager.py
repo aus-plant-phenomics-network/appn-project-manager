@@ -71,7 +71,7 @@ class ProjectManager:
 
     @property
     def location(self) -> Path:
-        return self.root / self.metadata.name
+        return self.root / self.metadata.project_name
 
     def match(self, name: str) -> dict[str, str]:
         """Match a file name and separate into format defined field components
@@ -90,9 +90,11 @@ class ProjectManager:
             defined using the format field.
         """
         ext = name.split(".")[-1]
-        if ext not in self.handlers:
-            raise UnsupportedFileExtension(ext)
-        return self.handlers[ext].match(name)
+        if ext in self.handlers:
+            return self.handlers[ext].match(name)
+        if "*" in self.handlers:
+            return self.handlers["*"].match(name)
+        raise UnsupportedFileExtension(str(ext))
 
     def get_file_placement(self, name: str) -> str:
         """Find location where a file should be placed.

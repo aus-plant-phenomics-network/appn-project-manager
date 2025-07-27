@@ -169,7 +169,7 @@ class ProjectMetadata(ProjectTemplateDecl):
     meta: ProjectMetadataDecl
 
     @property
-    def name(self) -> str:
+    def project_name(self) -> str:
         """Project name based on metadata and naming convention definiton"""
         fields = self.naming_convention.structure
         name: list[str] = []

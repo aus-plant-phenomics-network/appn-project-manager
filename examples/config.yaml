@@ -4,14 +4,7 @@ naming_convention:
   structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName']
 layout: ['site', 'sensor', 'trial'] 
 file: 
-  bin: 
-    sep: "_"
-    format: 
-      - ['date', '\d{8}-\d{6}']
-      - ['site', '[^_.]+']
-      - ['sensor', '[^_.]+']
-      - ['trial', '[^_.]+']
-  txt:
+  "*": 
     sep: "_"
     format: 
       - ['date', '\d{8}-\d{6}']
