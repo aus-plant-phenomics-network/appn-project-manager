@@ -1,7 +1,7 @@
 [project]
-name = "appn-project-manager"
-version = "0.1.0"
-description = "Add your description here"
+name = "appm"
+version = "0.0.2"
+description = "APPN Project Manager Package"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -17,3 +17,11 @@ analysis = [
 dev = [
     "pytest>=8.4.1",
 ]
+
+[build-system]
+requires = ["uv_build>=0.8.3,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "appm"
+module-root = ""
