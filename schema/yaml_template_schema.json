@@ -46,8 +46,16 @@
           "type": "string"
         },
         "sep": {
-          "title": "Sep",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sep"
         },
         "pattern": {
           "anyOf": [
@@ -95,8 +103,7 @@
         }
       },
       "required": [
-        "name",
-        "sep"
+        "name"
       ],
       "title": "FieldDecl",
       "type": "object"

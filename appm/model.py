@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Self
+from typing import Any, Self, cast
 
 from pydantic import BaseModel, model_validator
 
@@ -30,27 +30,33 @@ def extract_field_decl(
 
 class FieldDecl(BaseModel):
     name: str
-    sep: str
+    sep: str | None = None
     pattern: str | None = None
     subfields: list[FieldDecl | tuple[str, str]] | None = None
+    required: bool = True
 
     @property
     def matched_fields(self) -> list[str]:
         result = [self.name]
         for field in self.processed_subfields:
             result.extend(
-                [f"{self.name}.{field_name}" for field_name in field.matched_fields]
+                [f"{self.name}__{field_name}" for field_name in field.matched_fields]
             )
         return result
 
     @model_validator(mode="after")
     def validate_pattern_subfields(self) -> Self:
+        # Error when none of pattern and subfields are provided
         if not self.pattern and not self.subfields:
             raise ValueError("Either one of pattern or subfield must be provided")
+        # Error when both of pattern and subfields are provided
         if self.pattern and self.subfields:
             raise ValueError(
                 "pattern and subfields must not be provided at the same time"
             )
+        # Error when subfields are provided but sep is None
+        if self.subfields and not self.sep:
+            raise ValueError("If subfields is provided, sep must also be provided")
         self._subfields = extract_field_decl(self.subfields)
         return self
 
@@ -58,9 +64,7 @@ class FieldDecl(BaseModel):
     def from_tuple(cls, value: tuple[str, str]) -> "FieldDecl":
         return FieldDecl(
             name=value[0],
-            sep="",
             pattern=value[1],
-            subfields=None,
         )
 
     @property
@@ -74,6 +78,7 @@ class FieldDecl(BaseModel):
         patterns = [
             f"({field.processed_pattern})" for field in self.processed_subfields
         ]
+        assert self.sep
         return self.sep.join(patterns)
 
 

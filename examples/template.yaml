@@ -3,17 +3,14 @@ version: 0.0.1
 naming_convention: 
   sep: "_" 
   structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName']
-layout: ['site', 'sensor', 'datetime.date', 'trial', 'procLevel'] 
+layout: ['site', 'sensor', 'date', 'trial', 'procLevel'] 
 file: 
   "*": 
     sep: "_"
     format: 
-      - name: 'datetime'
-        sep: '-'
-        subfields:
-          - ['date', '\d{8}']
-          - ['time', '\d{6}']
+      - ['date', '\d{8}', '-']
+      - ['time', '\d{6}']
       - ['site', '[^_.]+']
       - ['sensor', '[^_.]+']
       - ['trial', '[^_.]+']
-      - ['procLevel', 'T0-raw|T1-proc|T2-trait']
+      - ['procLevel', 'T0-raw|T1-proc|T2-trait', '_', false]

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import shutil
+from copy import deepcopy
 from pathlib import Path
-from typing import Any, overload
+from typing import Any
 
 from ruamel.yaml import YAML
 
 from appm.__version__ import __version__
+from appm.default import DEFAULT_TEMPLATE
 from appm.exceptions import (
     UnsupportedFileExtension,
 )
@@ -124,40 +126,14 @@ class ProjectManager:
         dst_path.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src_path, dst_path)
 
-    @overload
     @classmethod
     def from_template(
         cls,
         root: str | Path,
-        template: str | Path,
         year: int,
         summary: str,
         internal: bool = True,
-        researcherName: str | None = None,
-        organisationName: str | None = None,
-    ) -> ProjectManager: ...
-
-    @overload
-    @classmethod
-    def from_template(
-        cls,
-        root: str | Path,
-        template: dict[str, Any],
-        year: int,
-        summary: str,
-        internal: bool = True,
-        researcherName: str | None = None,
-        organisationName: str | None = None,
-    ) -> ProjectManager: ...
-
-    @classmethod
-    def from_template(
-        cls,
-        root: str | Path,
-        template: str | Path | dict[str, Any],
-        year: int,
-        summary: str,
-        internal: bool = True,
+        template: str | Path | dict[str, Any] | None = None,
         researcherName: str | None = None,
         organisationName: str | None = None,
     ) -> ProjectManager:
@@ -180,8 +156,14 @@ class ProjectManager:
             metadata_path = validate_path(template)
             with metadata_path.open("r") as file:
                 metadata = yaml.load(file)
-        else:
+        elif isinstance(template, dict):
             metadata = template
+        elif not template:
+            metadata = deepcopy(DEFAULT_TEMPLATE)
+        else:
+            raise TypeError(
+                f"Unexpected type for template: {type(template)}. Accepts str, dict or None"
+            )
         metadata["meta"] = {
             "year": year,
             "summary": summary,
