@@ -134,9 +134,15 @@ class ProjectTemplateDecl(BaseModel):
     """
 
     layout: list[str]
+    """Describes how the folder structure described by the current template is organised. For instance, a valid layout is ['site','sensor','trial'], and a valid path is `adelaide/oak/trial-alpha`"""
     file: dict[str, ExtDecl]
+    """File extension and declaration, which is a mapping of extension name to extension declaration. When copying files to the project, appm matches the file extension to extension declaration to determine the location where the file should be placed. Users can use 
+    `*` in place of a file extension as a default catch all. This means if a declaration for an extension is found, that declaration will be used for path matching. If the exact extension declaration is not found, but a `*` declaration is define, the declaration for 
+    `*` will be used instead."""
     naming_convention: NamingConvDecl = NamingConvDecl()
+
     version: str | None = __version__
+    """APPM template version"""
 
     @property
     def layout_set(self) -> set[str]:
