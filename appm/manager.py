@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import shutil
 from pathlib import Path
 from typing import Any, overload
@@ -9,49 +8,14 @@ from ruamel.yaml import YAML
 
 from appm.__version__ import __version__
 from appm.exceptions import (
-    FileFormatMismatch,
     UnsupportedFileExtension,
 )
-from appm.model import ExtDecl, ProjectMetadata
+from appm.model import ProjectMetadata
 from appm.utils import to_flow_style, validate_path
 
 yaml = YAML()
 yaml.indent(mapping=2, sequence=4, offset=2)
 yaml.preserve_quotes = True  # optional, if you want to preserve quotes
-
-
-class ExtManager:
-    """Utility class that handles matching of file name based
-    on extension declaration
-    """
-
-    def __init__(self, ext: str, decl: ExtDecl) -> None:
-        self.ext = ext
-        self.decl = decl
-
-    @property
-    def pattern(self) -> str:
-        """Generated RegEx pattern based on extension format definition"""
-        return (
-            r"^"
-            + self.decl.sep.join([f"({p})" for _, p in self.decl.format])
-            + r"(.*)$"
-        )
-
-    def match(self, name: str) -> dict[str, str]:
-        """Match a file name and separate into format defined field components
-
-        The result contains a * which captures all non-captured values.
-        """
-        match = re.match(self.pattern, name)
-        if not match:
-            raise FileFormatMismatch(f"Name: {name}. Pattern: {self.pattern}")
-        groups = match.groups()
-        result = {}
-        for i, (field, _) in enumerate(self.decl.format):
-            result[field] = groups[i]
-        result["*"] = groups[-1]
-        return result
 
 
 class ProjectManager:
@@ -64,14 +28,25 @@ class ProjectManager:
     ) -> None:
         self.root = Path(root)
         self.metadata = ProjectMetadata.model_validate(metadata)
-        self.handlers = {
-            ext: ExtManager(ext, ext_decl)
-            for ext, ext_decl in self.metadata.file.items()
-        }
+        self.handlers = {ext: handler for ext, handler in self.metadata.file.items()}
 
     @property
     def location(self) -> Path:
         return self.root / self.metadata.project_name
+
+    def build_path(self, layout_kwargs: dict[str, str]) -> None:
+        layout = [(key, layout_kwargs.get(key, None)) for key in self.metadata.layout]
+        layout_path = []
+        for key, value in layout[::-1]:
+            if value:
+                layout_path.append(value)
+            else:
+                if not layout_path:
+                    continue
+                raise ValueError(f"Missing value for layout component: {key}")
+        if layout_path:
+            path = self.location / "/".join(layout_path[::-1])
+            path.mkdir(parents=True, exist_ok=True)
 
     def match(self, name: str) -> dict[str, str]:
         """Match a file name and separate into format defined field components

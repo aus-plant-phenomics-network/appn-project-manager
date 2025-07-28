@@ -1,11 +1,80 @@
-from typing import Self
+from __future__ import annotations
+
+import re
+from typing import Any, Self
 
 from pydantic import BaseModel, model_validator
 
 from appm.__version__ import __version__
+from appm.exceptions import FileFormatMismatch
 from appm.utils import slugify
 
 STRUCTURES = {"year", "summary", "internal", "researcherName", "organisationName"}
+
+
+def extract_field_decl(
+    fields: list[FieldDecl | tuple[str, str]] | None,
+) -> list[FieldDecl]:
+    if not fields:
+        return []
+    result = []
+    for field in fields:
+        if isinstance(field, FieldDecl):
+            result.append(field)
+        elif isinstance(field, tuple | list):
+            result.append(FieldDecl.from_tuple(field))
+        elif isinstance(field, dict):
+            result.append(FieldDecl.model_validate(field))
+    return result
+
+
+class FieldDecl(BaseModel):
+    name: str
+    sep: str
+    pattern: str | None = None
+    subfields: list[FieldDecl | tuple[str, str]] | None = None
+
+    @property
+    def matched_fields(self) -> list[str]:
+        result = [self.name]
+        for field in self.processed_subfields:
+            result.extend(
+                [f"{self.name}.{field_name}" for field_name in field.matched_fields]
+            )
+        return result
+
+    @model_validator(mode="after")
+    def validate_pattern_subfields(self) -> Self:
+        if not self.pattern and not self.subfields:
+            raise ValueError("Either one of pattern or subfield must be provided")
+        if self.pattern and self.subfields:
+            raise ValueError(
+                "pattern and subfields must not be provided at the same time"
+            )
+        self._subfields = extract_field_decl(self.subfields)
+        return self
+
+    @classmethod
+    def from_tuple(cls, value: tuple[str, str]) -> "FieldDecl":
+        return FieldDecl(
+            name=value[0],
+            sep="",
+            pattern=value[1],
+            subfields=None,
+        )
+
+    @property
+    def processed_subfields(self) -> list["FieldDecl"]:
+        return self._subfields
+
+    @property
+    def processed_pattern(self) -> str:
+        if self.pattern:
+            return self.pattern
+        patterns = [
+            f"({field.processed_pattern})" for field in self.processed_subfields
+        ]
+        return self.sep.join(patterns)
 
 
 class ExtDecl(BaseModel):
@@ -36,15 +105,59 @@ class ExtDecl(BaseModel):
 
     sep: str = "_"
     """File name separator"""
-    format: list[tuple[str, str]]
+    format: list[tuple[str, str] | FieldDecl]
     """File name format components - list of fields and their regex pattern. The order 
     of fields in format is used for regex group capture.
     """
 
     @property
+    def processed_format(self) -> list[FieldDecl]:
+        return self._format
+
+    @property
+    def format_map(self) -> dict[str, FieldDecl]:
+        return self._format_map
+
+    @property
+    def processed_pattern(self) -> str:
+        return self._pattern
+
+    @property
     def fields(self) -> set[str]:
         """Set of fields defined in format"""
-        return {item[0] for item in self.format}
+        return set(self.matched_fields)
+
+    @model_validator(mode="after")
+    def transform_format(self) -> Self:
+        self._format = extract_field_decl(self.format)
+        self._format_map: dict[str, FieldDecl] = {}
+        for field in self._format:
+            if field.name in self._format_map:
+                raise ValueError(f"Field name must be unique: {field.name}")
+            self._format_map[field.name] = field
+
+        self._pattern = (
+            r"^"
+            + self.sep.join([f"({p.processed_pattern})" for p in self._format])
+            + r"(.*)$"
+        )
+        return self
+
+    @property
+    def matched_fields(self) -> list[str]:
+        result = []
+        for field in self.processed_format:
+            result.extend(field.matched_fields)
+        result.append("*")
+        return result
+
+    def match(self, name: str) -> dict[str, Any]:
+        match = re.match(self.processed_pattern, name)
+        if not match:
+            raise FileFormatMismatch(f"Name: {name}. Pattern: {self.processed_pattern}")
+        groups = match.groups()
+        assert len(groups) == len(self.matched_fields)
+        return dict(zip(self.matched_fields, groups))
 
 
 class NamingConvDecl(BaseModel):

@@ -10,17 +10,24 @@
         },
         "format": {
           "items": {
-            "maxItems": 2,
-            "minItems": 2,
-            "prefixItems": [
+            "anyOf": [
               {
-                "type": "string"
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "type": "array"
               },
               {
-                "type": "string"
+                "$ref": "#/$defs/FieldDecl"
               }
-            ],
-            "type": "array"
+            ]
           },
           "title": "Format",
           "type": "array"
@@ -30,6 +37,68 @@
         "format"
       ],
       "title": "ExtDecl",
+      "type": "object"
+    },
+    "FieldDecl": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "sep": {
+          "title": "Sep",
+          "type": "string"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pattern"
+        },
+        "subfields": {
+          "anyOf": [
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/FieldDecl"
+                  },
+                  {
+                    "maxItems": 2,
+                    "minItems": 2,
+                    "prefixItems": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ],
+                    "type": "array"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subfields"
+        }
+      },
+      "required": [
+        "name",
+        "sep"
+      ],
+      "title": "FieldDecl",
       "type": "object"
     },
     "NamingConvDecl": {
