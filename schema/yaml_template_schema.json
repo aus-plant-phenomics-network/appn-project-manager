@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "ExtDecl": {
+      "description": "Pydantic model for extension file name convention\n\nThis metadata defines how file names are described and organised in the project.\n\nFile names are separator separated fields with a . extensions. For instance, the\nfile name `20200101-100000_adelaide_oak_trial-alpha.bin` is made up of the following\ncomponents:\n- `date`: `20200101-100000`\n- `site`: `adelaide`\n- `sensor`: `oak`\n- `trial`: `trial-alph`\n\nComponents are defined using the format parameter which is a list of string pairs, the\nfirst being the field name and the second being its regex pattern.\n\nThe order at which a field definition (a string pair) appears in the `format` list must\nmatch how the field value appears in the matching file name. In the previous example, since date is the first\nfield in `format`, the file name begins with a date value.\n\nNote that if `_` is used as the separator, user must ensure that no `_` is used in field\nvalue. An appropriate replacement is the `-` literal. For instance, `trial-alpha` is prefered\nover `trial_alpha` (the latter will throw an error). The library also provides a utility function\ncalled `slugify` to handle such cases.",
+      "properties": {
+        "sep": {
+          "default": "_",
+          "title": "Sep",
+          "type": "string"
+        },
+        "format": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Format",
+          "type": "array"
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "title": "ExtDecl",
+      "type": "object"
+    },
+    "NamingConvDecl": {
+      "description": "Pydantic model for project naming convention declaration.\n\nThis metadata defines how a project name is constructed from its structural components.\n\nNote that the structural components must come from the metadata fields - i.e. year, summary etc,\nand hence the parameter `structure` must be a valid permutation of a non empty subset of\n`{\"year\", \"summary\", \"internal\", \"researcherName\", \"organisationName\"}`. This means that the parameter\nstructure:\n- cannot be empty\n- cannot have repeated component(s)\n- cannot have a field component that is not one of the metadata fields.\n\nNote that if `_` is used as the separator, user must ensure that no `_` is used in field\nvalue. An appropriate replacement is the `-` literal. For instance, `trial-alpha` is prefered\nover `trial_alpha` (the latter will throw an error). The library also provides a utility function\ncalled `slugify` to handle such cases.",
+      "properties": {
+        "sep": {
+          "default": "_",
+          "title": "Sep",
+          "type": "string"
+        },
+        "structure": {
+          "default": [
+            "year",
+            "summary",
+            "internal",
+            "researcherName",
+            "organisationName"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Structure",
+          "type": "array"
+        }
+      },
+      "title": "NamingConvDecl",
+      "type": "object"
+    }
+  },
+  "description": "Pydantic model for project yaml template declaration.\n\nThis model validate fields defined in `metadata.yaml`. Note that this class defines a metadata\ntemplate and not the full metadata. The full metadata class is `ProjectMetadata`.\n\n<h4>Fields:</h4>\n\n- layout: a list of fields that define the layout organisation of the project. Must be present.\n- file: a mapping between file extensions and their definiton (`ExtDecl`). Must be present.\n- naming_convention: a naming convention declaration object (`NamingConvDecl`). Can be missing.\n- version: the current metadata version. If not provided, will be interpreted using the latest version.\n\nProject layout defined using the `appm` package is very flexible. For instance, valid layouts can be\n\n- `[site, sensor, trial]` - i.e. `adelaide/oak/trial-alpha`\n- `[sensor, serial_number, location]` - i.e `oak-d/A00110-INTL/adelaide`\n- `[site, year, month, sensor]` - i.e. `adelaide/2024/01/oak-d`\n\nHowever, valid metadata must satisfy the following constraints:\n\n- Folder organisation must strictly adhere to layout definition - i.e. users can't mix and match 2 layouts in the\nsame project.\n- File extension fields must be a proper superset of layout. This allows appm to interprete the appropriate\nlocation to place the file to using the layout definition.\n\nExample:\n\nGiven the standard template, the file `20200101-100000_adelaide_oak_trial-alpha.bin` will be placed into\n`{project_name}/adelaide/oak/trial-alpha/20200101-100000_adelaide_oak_trial-alpha.bin`",
+  "properties": {
+    "layout": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Layout",
+      "type": "array"
+    },
+    "file": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ExtDecl"
+      },
+      "title": "File",
+      "type": "object"
+    },
+    "naming_convention": {
+      "$ref": "#/$defs/NamingConvDecl",
+      "default": {
+        "sep": "_",
+        "structure": [
+          "year",
+          "summary",
+          "internal",
+          "researcherName",
+          "organisationName"
+        ]
+      }
+    },
+    "version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": "0.0.3",
+      "title": "Version"
+    }
+  },
+  "required": [
+    "layout",
+    "file"
+  ],
+  "title": "ProjectTemplateDecl",
+  "type": "object"
+}
