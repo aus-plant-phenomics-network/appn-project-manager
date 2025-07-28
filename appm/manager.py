@@ -12,7 +12,7 @@ from appm.default import DEFAULT_TEMPLATE
 from appm.exceptions import (
     UnsupportedFileExtension,
 )
-from appm.model import ProjectMetadata
+from appm.model import Project
 from appm.utils import to_flow_style, validate_path
 
 yaml = YAML()
@@ -29,28 +29,14 @@ class ProjectManager:
         root: str | Path,
     ) -> None:
         self.root = Path(root)
-        self.metadata = ProjectMetadata.model_validate(metadata)
+        self.metadata = Project.model_validate(metadata)
         self.handlers = {ext: handler for ext, handler in self.metadata.file.items()}
 
     @property
     def location(self) -> Path:
         return self.root / self.metadata.project_name
 
-    def build_path(self, layout_kwargs: dict[str, str]) -> None:
-        layout = [(key, layout_kwargs.get(key, None)) for key in self.metadata.layout]
-        layout_path = []
-        for key, value in layout[::-1]:
-            if value:
-                layout_path.append(value)
-            else:
-                if not layout_path:
-                    continue
-                raise ValueError(f"Missing value for layout component: {key}")
-        if layout_path:
-            path = self.location / "/".join(layout_path[::-1])
-            path.mkdir(parents=True, exist_ok=True)
-
-    def match(self, name: str) -> dict[str, str]:
+    def match(self, name: str) -> dict[str, str | None]:
         """Match a file name and separate into format defined field components
 
         The result contains a * which captures all non-captured values.
@@ -88,10 +74,9 @@ class ProjectManager:
         Returns:
             str: file placement directory
         """
-        layout = self.metadata.layout
+        layout = self.metadata.parsed_layout
         groups = self.match(name)
-        values = [groups[component] for component in layout]
-        return "/".join(values)
+        return layout.get_path(groups)
 
     def init_project(self) -> None:
         """Create a project:

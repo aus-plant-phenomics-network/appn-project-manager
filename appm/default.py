@@ -1,4 +1,5 @@
 DEFAULT_TEMPLATE = {
+    "version": "0.0.1",
     "naming_convention": {
         "sep": "_",
         "structure": [
@@ -9,20 +10,26 @@ DEFAULT_TEMPLATE = {
             "organisationName",
         ],
     },
-    "layout": ["site", "sensor", "datetime__date", "trial", "procLevel"],
+    "layout": {
+        "structure": ["site", "sensor", "date", "trial", "procLevel"],
+        "mapping": {
+            "procLevel": {"raw": "T0-raw", "proc": "T1-proc", "trait": "T2-trait"}
+        },
+    },
     "file": {
         "*": {
             "sep": "_",
-            "format": [
+            "default": {"procLevel": "raw"},
+            "components": [
+                {"sep": "-", "components": [["date", r"\d{8}"], ["time", r"\d{6}"]]},
+                ["site", "[^_.]+"],
+                ["sensor", "[^_.]+"],
+                ["trial", "[^_.]+"],
                 {
-                    "name": "datetime",
-                    "sep": "-",
-                    "subfields": [["date", r"\d{8}"], ["time", r"\d{6}"]],
+                    "name": "procLevel",
+                    "pattern": "T0-raw|T1-proc|T2-trait|raw|proc|trait",
+                    "required": False,
                 },
-                ["site", r"[^_.]+"],
-                ["sensor", r"[^_.]+"],
-                ["trial", r"[^_.]+"],
-                ["procLevel", r"(T0-raw|T1-proc|T2-trait)?"],
             ],
         }
     },
