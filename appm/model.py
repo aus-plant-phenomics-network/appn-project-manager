@@ -124,7 +124,7 @@ class Extension(Group):
         return set(self.names) | self.default_names
 
     def validate_regex(self) -> Self:
-        self = super().validate_regex()
+        super().validate_regex()
         self._regex = f"^{self._regex}(?P<rest>.*)$"
         return self
 
@@ -168,7 +168,7 @@ class Extension(Group):
         return result
 
 
-type File = dict[str, Extension]
+File = dict[str, Extension]
 
 
 class Layout(BaseModel):
@@ -186,17 +186,16 @@ class Layout(BaseModel):
     @model_validator(mode="after")
     def validate_layout(self) -> Self:
         self._structure_set = set(self.structure)
-        if self.mapping:
-            if not set(self.mapping.keys()).issubset(self._structure_set):
-                raise ValueError(
-                    f"Mapping keys must be a subset of structure. Mapping keys: {set(self.mapping.keys())}, structure: {self.structure}"
-                )
+        if self.mapping and not set(self.mapping.keys()).issubset(self._structure_set):
+            raise ValueError(
+                f"Mapping keys must be a subset of structure. Mapping keys: {set(self.mapping.keys())}, structure: {self.structure}"
+            )
         return self
 
     def get_path(self, components: dict[str, str | None]) -> str:
         result: list[str] = []
         for key in self.structure:
-            value = components.get(key, None)
+            value = components.get(key)
             if self.mapping and key in self.mapping and value in self.mapping[key]:
                 value = self.mapping[key][value]
             if value is None:
@@ -277,11 +276,7 @@ class Template(BaseModel):
 
     @model_validator(mode="after")
     def validate_template(self) -> Self:
-        return (
-            self.validate_layout()
-            .validate_file_non_empty()
-            .validate_file_name_subset_layout()
-        )
+        return self.validate_layout().validate_file_non_empty().validate_file_name_subset_layout()
 
 
 class Metadata(BaseModel):
@@ -297,7 +292,7 @@ class Project(Template):
 
     @property
     def project_name(self) -> str:
-        """Project name based on metadata and naming convention definiton"""
+        """Project name based on metadata and naming convention definition"""
         fields = self.naming_convention.structure
         name: list[str] = []
         for field in fields:

@@ -30,7 +30,7 @@ class ProjectManager:
     ) -> None:
         self.root = Path(root)
         self.metadata = Project.model_validate(metadata)
-        self.handlers = {ext: handler for ext, handler in self.metadata.file.items()}
+        self.handlers = dict(self.metadata.file.items())
 
     @property
     def location(self) -> Path:
@@ -130,8 +130,8 @@ class ProjectManager:
             year (int): meta information - year
             summary (str): meta information - summary
             internal (bool, optional): meta information - internal. Defaults to True.
-            researcher (str | None, optional): meta information - researcherName. Defaults to None.
-            organisation (str | None, optional): meta information - organisationName. Defaults to None.
+            researcherName (str | None, optional): meta information - researcher name. Defaults to None.
+            organisationName (str | None, optional): meta information - organisation name. Defaults to None.
 
         Returns:
             ProjectManager: ProjectManager object
@@ -173,9 +173,7 @@ class ProjectManager:
         """
         project_path = validate_path(project_path)
         metadata_path = (
-            project_path / cls.METADATA_NAME
-            if not metadata_name
-            else project_path / metadata_name
+            project_path / cls.METADATA_NAME if not metadata_name else project_path / metadata_name
         )
         metadata_path = validate_path(metadata_path)
 

@@ -1,5 +1,5 @@
 DEFAULT_TEMPLATE = {
-    "version": "0.0.3",
+    "version": "0.0.4",
     "naming_convention": {
         "sep": "_",
         "structure": [
@@ -12,9 +12,7 @@ DEFAULT_TEMPLATE = {
     },
     "layout": {
         "structure": ["site", "sensor", "date", "trial", "procLevel"],
-        "mapping": {
-            "procLevel": {"raw": "T0-raw", "proc": "T1-proc", "trait": "T2-trait"}
-        },
+        "mapping": {"procLevel": {"raw": "T0-raw", "proc": "T1-proc", "trait": "T2-trait"}},
     },
     "file": {
         "*": {

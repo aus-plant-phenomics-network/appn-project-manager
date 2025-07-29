@@ -5,7 +5,7 @@ A Python package for managing project templates, metadata, and file organization
 ## Install
 
 ```bash
-pip install appm 
+pip install appm
 ```
 
 ## Features

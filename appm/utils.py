@@ -3,7 +3,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from ruamel.yaml import CommentedMap, CommentedSeq
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 from appm.exceptions import NotAFileErr, NotFoundErr
 
@@ -58,7 +58,7 @@ def validate_path(path: str | Path, is_file: bool = False) -> Path:
         is_file (bool): whether path is a file. Defaults to False.
 
     Raises:
-        NotFoundErr: path item doesnt exist
+        NotFoundErr: path item doesn't exist
         NotAFileErr: path doesn't describe a file
 
     Returns:
@@ -66,7 +66,7 @@ def validate_path(path: str | Path, is_file: bool = False) -> Path:
     """
     _path = Path(path)
     if not _path.exists():
-        raise NotFoundErr(str(path))
+        raise NotFoundErr(f"File not found: {path!s}")
     if is_file and not _path.is_file():
-        raise NotAFileErr(str(path))
+        raise NotAFileErr(f"Not a file: {path!s}")
     return _path

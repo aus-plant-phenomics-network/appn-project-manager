@@ -115,9 +115,7 @@ def test_validate_layout_expects_fails(data: dict[Any, Any], msg: str) -> None:
     ],
     ids=["Empty structure", "Duplicated fields", "Invalid Field 1", "Invalid Field 2"],
 )
-def test_validate_naming_convention_expects_fails(
-    data: dict[Any, Any], msg: str
-) -> None:
+def test_validate_naming_convention_expects_fails(data: dict[Any, Any], msg: str) -> None:
     with pytest.raises(ValidationError) as excinfo:
         NamingConv.model_validate(data)
     if msg:

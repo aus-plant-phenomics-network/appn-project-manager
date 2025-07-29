@@ -1,30 +1,30 @@
 # yaml-language-server: $schema=../../../schema/yaml_template_schema.json
-version: 0.0.3
-naming_convention: 
-  sep: "_" 
+version: 0.0.4
+naming_convention:
+  sep: "_"
   # month is not a valid field in structure
   # Must be a valid permutation of any non empty subset of ['year', 'summary', 'internal', 'researcherName', 'organisationName']
-  structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName', 'month'] 
-layout: 
+  structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName', 'month']
+layout:
   structure: ['site', 'sensor', 'date', 'trial', 'procLevel']
-  mapping: 
+  mapping:
     procLevel:
       raw: 'T0-raw'
       proc: 'T1-proc'
       trait: 'T2-trait'
-file: 
-  "*": 
+file:
+  "*":
     sep: "_"
-    default: 
-      procLevel: raw 
-    components: 
+    default:
+      procLevel: raw
+    components:
       - sep: "-"
-        components: 
+        components:
           - ['date', '\d{8}']
           - ['time', '\d{6}']
       - ['site', '[^_.]+']
       - ['sensor', '[^_.]+']
       - ['trial', '[^_.]+']
-      - name: 'procLevel' 
+      - name: 'procLevel'
         pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
         required: false

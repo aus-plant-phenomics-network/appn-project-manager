@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 
@@ -29,20 +30,19 @@ def default_components() -> dict[str, str | None]:
 
 
 @pytest.fixture
-def make_filename(default_components: dict[str, str | None]):
+def make_filename(default_components: dict[str, str | None]) -> MakeFileNameT:
     def _make_filename(change: dict[str, str | None]) -> str:
         components = overwrite(default_components, change)
         base = f"{components['date']}-{components['time']}_{components['site']}_{components['sensor']}_{components['trial']}"
         if components["procLevel"]:
             base = f"{base}_{components['procLevel']}"
-        base = f"{base}{components['rest']}"
-        return base
+        return f"{base}{components['rest']}"
 
     return _make_filename
 
 
 @pytest.fixture
-def make_components(default_components: dict[str, str | None]):
+def make_components(default_components: dict[str, str | None]) -> MakeComponentT:
     def _make_components(change: dict[str, str | None]) -> dict[str, str | None]:
         return overwrite(default_components, change)
 
@@ -50,7 +50,7 @@ def make_components(default_components: dict[str, str | None]):
 
 
 @pytest.fixture
-def make_layout(default_components: dict[str, str | None]):
+def make_layout(default_components: dict[str, str | None]) -> MakeLayoutT:
     def _make_layout(change: dict[str, str | None]) -> str:
         components = overwrite(default_components, change)
         return f"{components['site']}/{components['sensor']}/{components['date']}/{components['trial']}/{components['procLevel']}"
@@ -59,11 +59,9 @@ def make_layout(default_components: dict[str, str | None]):
 
 
 @pytest.fixture
-def make_project(default_meta: dict[str, Any], tmp_path: Path):
+def make_project(default_meta: dict[str, Any], tmp_path: Path) -> MakeProjectT:
     def _make_project(template: str | Path | None | dict[str, Any]) -> ProjectManager:
-        return ProjectManager.from_template(
-            root=tmp_path, template=template, **default_meta
-        )
+        return ProjectManager.from_template(root=tmp_path, template=template, **default_meta)
 
     return _make_project
 
@@ -315,9 +313,7 @@ def test_match_file_name_and_layout(
         "20250101_adelaide_lidar_0_raw.bin",
     ],
 )
-def test_match_file_name_default_model_expects_fails(
-    name: str, m_default: ProjectManager
-) -> None:
+def test_match_file_name_default_model_expects_fails(name: str, m_default: ProjectManager) -> None:
     with pytest.raises(FileFormatMismatch):
         m_default.match(name)
 
