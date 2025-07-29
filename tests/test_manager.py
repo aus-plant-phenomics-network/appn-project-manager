@@ -1,38 +1,78 @@
+from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import pytest
 
-from appm.exceptions import FileFormatMismatch
+from appm.exceptions import FileFormatMismatch, UnsupportedFileExtension
 from appm.manager import ProjectManager
 from appm.model import Metadata
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures/valid_templates"
-
-
-def overwrite(base: dict[str, Any], change: dict[str, Any]) -> dict[str, Any]:
-    for k, v in change.items():
-        base[k] = v
-    return base
+MakeProjectT = Callable[[str | None | Path | dict[str, Any]], ProjectManager]
+MakeFileNameT = Callable[[dict[str, Any]], str]
+MakeComponentT = Callable[[dict[str, Any]], dict[str, Any]]
+MakeLayoutT = MakeFileNameT
 
 
 @pytest.fixture
 def default_components() -> dict[str, str | None]:
     return {
         "date": "20201010",
-        "time": "122022",
+        "time": "101010",
         "site": "adelaide",
-        "sensor": "oak",
-        "trial": "trial-alpha",
+        "sensor": "lidar",
+        "trial": "alpha",
         "procLevel": "raw",
         "rest": ".bin",
     }
 
 
-def build_name(components: dict[str, str | None]) -> str:
-    if components["procLevel"]:
-        return f"{components['date']}-{components['time']}_{components['site']}_{components['sensor']}_{components['trial']}_{components['procLevel']}{components['rest']}"
-    return f"{components['date']}-{components['time']}_{components['site']}_{components['sensor']}_{components['trial']}{components['rest']}"
+@pytest.fixture
+def make_filename(default_components: dict[str, str | None]):
+    def _make_filename(change: dict[str, str | None]) -> str:
+        components = overwrite(default_components, change)
+        base = f"{components['date']}-{components['time']}_{components['site']}_{components['sensor']}_{components['trial']}"
+        if components["procLevel"]:
+            base = f"{base}_{components['procLevel']}"
+        base = f"{base}{components['rest']}"
+        return base
+
+    return _make_filename
+
+
+@pytest.fixture
+def make_components(default_components: dict[str, str | None]):
+    def _make_components(change: dict[str, str | None]) -> dict[str, str | None]:
+        return overwrite(default_components, change)
+
+    return _make_components
+
+
+@pytest.fixture
+def make_layout(default_components: dict[str, str | None]):
+    def _make_layout(change: dict[str, str | None]) -> str:
+        components = overwrite(default_components, change)
+        return f"{components['site']}/{components['sensor']}/{components['date']}/{components['trial']}/{components['procLevel']}"
+
+    return _make_layout
+
+
+@pytest.fixture
+def make_project(default_meta: dict[str, Any], tmp_path: Path):
+    def _make_project(template: str | Path | None | dict[str, Any]) -> ProjectManager:
+        return ProjectManager.from_template(
+            root=tmp_path, template=template, **default_meta
+        )
+
+    return _make_project
+
+
+def overwrite(base: dict[str, Any], change: dict[str, Any]) -> dict[str, Any]:
+    result = deepcopy(base)
+    for k, v in change.items():
+        result[k] = v
+    return result
 
 
 @pytest.fixture
@@ -121,43 +161,150 @@ def test_get_project_name(
 
 
 @pytest.mark.parametrize(
-    "change, overwrite_component, layout",
+    "change, component_change, layout_change, template",
     (
-        ({}, {}, "adelaide/oak/20201010/trial-alpha/T0-raw"),
-        (
-            {"date": "20250101", "time": "150001", "site": "waite"},
-            {},
-            "waite/oak/20250101/trial-alpha/T0-raw",
-        ),
-        ({"procLevel": "T0-raw"}, {}, "adelaide/oak/20201010/trial-alpha/T0-raw"),
-        ({"procLevel": "T1-proc"}, {}, "adelaide/oak/20201010/trial-alpha/T1-proc"),
-        ({"procLevel": "T2-trait"}, {}, "adelaide/oak/20201010/trial-alpha/T2-trait"),
-        ({"procLevel": "raw"}, {}, "adelaide/oak/20201010/trial-alpha/T0-raw"),
-        ({"procLevel": "proc"}, {}, "adelaide/oak/20201010/trial-alpha/T1-proc"),
-        ({"procLevel": "trait"}, {}, "adelaide/oak/20201010/trial-alpha/T2-trait"),
+        # default.yaml
+        ({}, {}, {"procLevel": "T0-raw"}, "default.yaml"),
         (
             {"procLevel": None},
-            {"procLevel": "raw"},
-            "adelaide/oak/20201010/trial-alpha/T0-raw",
+            {},
+            {"procLevel": "T0-raw"},
+            "default.yaml",
         ),
         (
-            {"procLevel": None, "rest": "_camera-2_setup-1"},
-            {"procLevel": "raw"},
-            "adelaide/oak/20201010/trial-alpha/T0-raw",
+            {"procLevel": "proc"},
+            {"procLevel": "proc"},
+            {"procLevel": "T1-proc"},
+            "default.yaml",
+        ),
+        (
+            {"procLevel": "trait"},
+            {"procLevel": "trait"},
+            {"procLevel": "T2-trait"},
+            "default.yaml",
+        ),
+        (
+            {"procLevel": "T0-raw"},
+            {"procLevel": "T0-raw"},
+            {"procLevel": "T0-raw"},
+            "default.yaml",
+        ),
+        (
+            {"procLevel": "T1-proc"},
+            {"procLevel": "T1-proc"},
+            {"procLevel": "T1-proc"},
+            "default.yaml",
+        ),
+        (
+            {"procLevel": "T2-trait"},
+            {"procLevel": "T2-trait"},
+            {"procLevel": "T2-trait"},
+            "default.yaml",
+        ),
+        # file_no_default_ext.yaml
+        ({}, {}, {"procLevel": "T0-raw"}, "file_no_default_ext.yaml"),
+        (
+            {"procLevel": None},
+            {},
+            {"procLevel": "T0-raw"},
+            "file_no_default_ext.yaml",
+        ),
+        (
+            {"procLevel": "proc"},
+            {"procLevel": "proc"},
+            {"procLevel": "T1-proc"},
+            "file_no_default_ext.yaml",
+        ),
+        (
+            {"procLevel": "trait"},
+            {"procLevel": "trait"},
+            {"procLevel": "T2-trait"},
+            "file_no_default_ext.yaml",
+        ),
+        (
+            {"procLevel": "T0-raw"},
+            {"procLevel": "T0-raw"},
+            {"procLevel": "T0-raw"},
+            "file_no_default_ext.yaml",
+        ),
+        (
+            {"procLevel": "T1-proc"},
+            {"procLevel": "T1-proc"},
+            {"procLevel": "T1-proc"},
+            "file_no_default_ext.yaml",
+        ),
+        (
+            {"procLevel": "T2-trait"},
+            {"procLevel": "T2-trait"},
+            {"procLevel": "T2-trait"},
+            "file_no_default_ext.yaml",
+        ),
+        # file_missing_component_but_has_default
+        (
+            {},
+            {"rest": "_raw.bin"},
+            {"procLevel": "T0-raw"},
+            "file_missing_component_but_has_default.yaml",
+        ),
+        (
+            {"procLevel": None},
+            {},
+            {"procLevel": "T0-raw"},
+            "file_missing_component_but_has_default.yaml",
+        ),
+        (
+            {"procLevel": "proc"},
+            {"procLevel": "raw", "rest": "_proc.bin"},
+            {"procLevel": "T0-raw"},
+            "file_missing_component_but_has_default.yaml",
+        ),
+        (
+            {"procLevel": "trait"},
+            {"procLevel": "raw", "rest": "_trait.bin"},
+            {"procLevel": "T0-raw"},
+            "file_missing_component_but_has_default.yaml",
+        ),
+        (
+            {"procLevel": "T0-raw"},
+            {"procLevel": "raw", "rest": "_T0-raw.bin"},
+            {"procLevel": "T0-raw"},
+            "file_missing_component_but_has_default.yaml",
+        ),
+        (
+            {"procLevel": "T1-proc"},
+            {"procLevel": "raw", "rest": "_T1-proc.bin"},
+            {"procLevel": "T0-raw"},
+            "file_missing_component_but_has_default.yaml",
+        ),
+        (
+            {"procLevel": "T2-trait"},
+            {"procLevel": "raw", "rest": "_T2-trait.bin"},
+            {"procLevel": "T0-raw"},
+            "file_missing_component_but_has_default.yaml",
         ),
     ),
 )
-def test_match_file_name_and_layout_default_model(
+def test_match_file_name_and_layout(
     change: dict[str, str | None],
-    overwrite_component: dict[str, str | None],
-    layout: str,
-    m_default: ProjectManager,
-    default_components: dict[str, str | None],
+    component_change: dict[str, str | None],
+    layout_change: dict[str, str | None],
+    template: str,
+    make_filename: MakeFileNameT,
+    make_components: MakeComponentT,
+    make_layout: MakeLayoutT,
+    make_project: MakeProjectT,
+    tmp_path: Path,
 ) -> None:
-    components = overwrite(default_components, change)
-    name = build_name(components)
-    assert overwrite(components, overwrite_component) == m_default.match(name)
-    assert layout == m_default.get_file_placement(name)
+    name = make_filename(change)
+    components = make_components(component_change)
+    layout = make_layout(layout_change)
+    model = make_project(FIXTURE_PATH / template)
+    assert components == model.match(name)
+    assert layout == model.get_file_placement(name)
+    filename = tmp_path / name
+    filename.touch(exist_ok=True)
+    model.copy_file(filename)
+    assert (model.location / layout).exists()
 
 
 @pytest.mark.parametrize(
@@ -175,6 +322,12 @@ def test_match_file_name_default_model_expects_fails(
         m_default.match(name)
 
 
+def test_match_invalid_file_name_expects_fails(make_project: MakeProjectT) -> None:
+    m = make_project(FIXTURE_PATH / "file_no_default_ext.yaml")
+    with pytest.raises(UnsupportedFileExtension):
+        m.match("2020919-101010_adelaide_lidar_trial-0_proc.jpeg")
+
+
 def test_init_project(m_default: ProjectManager) -> None:
     m_default.init_project()
     assert m_default.location.exists()
@@ -189,20 +342,18 @@ def test_load_project(m_default: ProjectManager) -> None:
 
 
 def test_init_project_from_template_dict(
-    m_default: ProjectManager, default_meta: dict[Any, Any], tmp_path: Path
+    m_default: ProjectManager, make_project: MakeProjectT
 ) -> None:
     # From dict
-    m = ProjectManager.from_template(
-        root=tmp_path, template=m_default.metadata.model_dump(), **default_meta
-    )
+    m = make_project(m_default.metadata.model_dump())
     assert m_default.location == m.location
     assert m_default.metadata.model_dump() == m.metadata.model_dump()
 
 
 def test_init_project_from_template_no_template_val(
-    m_default: ProjectManager, default_meta: dict[Any, Any], tmp_path: Path
+    m_default: ProjectManager, make_project: MakeProjectT
 ) -> None:
     # From dict
-    m = ProjectManager.from_template(root=tmp_path, template=None, **default_meta)
+    m = make_project(None)
     assert m_default.location == m.location
     assert m_default.metadata.model_dump() == m.metadata.model_dump()

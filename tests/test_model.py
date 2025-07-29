@@ -137,15 +137,17 @@ def test_validate_naming_convention_expects_fails(
             "file_extension_no_default_name.yaml",
             "Component fields must be a superset of layout fields",
         ),
+        ("file_first_field_optional_group.yaml", "First component must be required"),
+        ("file_first_field_optional.yaml", "First component must be required"),
+        (
+            "file_no_default.yaml",
+            "Optional field that is also a layout field must have a default value",
+        ),
         ("group_empty.yaml", "Components cannot be empty"),
         ("layout_mapping.yaml", "Mapping keys must be a subset of structure"),
         ("naming_conv_duplicate.yaml", "repetition"),
         ("naming_conv_empty_structure.yaml", "empty structure"),
         ("naming_conv_invalid_field_structure.yaml", "permutation"),
-        (
-            "file_no_default.yaml",
-            "Optional field that is also a layout field must have a default value",
-        ),
     ],
 )
 def test_validate_template_expects_fails(path: str, msg: str) -> None:
@@ -164,6 +166,7 @@ def test_validate_template_expects_fails(path: str, msg: str) -> None:
         ("default.yaml"),
         ("file_missing_component_but_has_default.yaml"),
         ("file_multi_ext.yaml"),
+        ("file_no_default_ext.yaml"),
         ("layout_list.yaml"),
         ("layout_with_mapping.yaml"),
         ("naming_perm_year_researcher_org.yaml"),

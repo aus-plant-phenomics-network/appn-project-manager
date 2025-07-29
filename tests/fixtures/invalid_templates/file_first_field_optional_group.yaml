@@ -11,21 +11,6 @@ layout:
       proc: 'T1-proc'
       trait: 'T2-trait'
 file: 
-  "*": 
-    sep: "_"
-    default: 
-      procLevel: raw 
-    components: 
-      - sep: "-"
-        components: 
-          - ['date', '\d{8}']
-          - ['time', '\d{6}']
-      - ['site', '[^_.]+']
-      - ['sensor', '[^_.]+']
-      - ['trial', '[^_.]+']
-      - name: 'procLevel' 
-        pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
-        required: false
   "bin": 
     sep: "_"
     default: 
@@ -36,8 +21,10 @@ file:
         components: 
           - name: 'date'
             pattern: '\d{8}'
+            required: false
+          - name: 'time'
+            pattern: '\d{6}'
             required: true
-          - ['time', '\d{6}']
       - ['site', '[^_.]+']
       - ['sensor', '[^_.]+']
       - ['trial', '[^_.]+']

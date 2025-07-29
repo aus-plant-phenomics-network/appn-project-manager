@@ -42,11 +42,18 @@ class Group(BaseModel):
         if not self.components:
             raise ValueError(f"Components cannot be empty: {self.components}")
         self._fields: list[Field | Group] = []
+        self._normalised_fields: list[Field] = []
         for field in self.components:
             if isinstance(field, tuple | list):
-                self._fields.append(Field.from_tuple(field))
-            elif isinstance(field, Field | Group):
+                f = Field.from_tuple(field)
+                self._fields.append(f)
+                self._normalised_fields.append(f)
+            elif isinstance(field, Field):
                 self._fields.append(field)
+                self._normalised_fields.append(field)
+            else:
+                self._fields.append(field)
+                self._normalised_fields.extend(field.normalised_fields)
         return self
 
     def validate_names(self) -> Self:
@@ -65,22 +72,31 @@ class Group(BaseModel):
     def validate_regex(self) -> Self:
         regex_str = []
         for i, field in enumerate(self.fields):
+            is_optional = isinstance(field, Field) and not field.required
+            pattern = field.regex
+
             if i == 0:
-                if isinstance(field, Field) and not field.required:
-                    regex_str.append(f"{field.regex}?")
+                if is_optional:
+                    # First field, no separator; make only field optional
+                    regex_str.append(f"(?:{pattern})?")
                 else:
-                    regex_str.append(field.regex)
+                    regex_str.append(pattern)
             else:
-                if isinstance(field, Field) and not field.required:
-                    regex_str.append(f"(?:{self.sep}{field.regex})?")
+                if is_optional:
+                    # Wrap separator + field together as optional
+                    regex_str.append(f"(?:{self.sep}{pattern})?")
                 else:
-                    regex_str.append(f"{self.sep}{field.regex}")
+                    regex_str.append(f"{self.sep}{pattern}")
         self._regex = "".join(regex_str)
         return self
 
     @model_validator(mode="after")
     def validate_group(self) -> Self:
         return self.validate_components().validate_names().validate_regex()
+
+    @property
+    def normalised_fields(self) -> list[Field]:
+        return self._normalised_fields
 
     @property
     def fields(self) -> list[Field | Group]:
@@ -127,6 +143,11 @@ class Extension(Group):
             raise ValueError("Field component must not contain reserved key: rest")
         return self
 
+    def validate_first_field_must_be_required(self) -> Self:
+        if not (field := self.normalised_fields[0]).required:
+            raise ValueError(f"First component must be required: {field.name}")
+        return self
+
     @model_validator(mode="after")
     def validate_extension(self) -> Self:
         return (
@@ -135,6 +156,7 @@ class Extension(Group):
             .validate_regex()
             .validate_unique_names()
             .validate_reserved_name()
+            .validate_first_field_must_be_required()
         )
 
     def match(self, name: str) -> dict[str, str | None]:
@@ -177,7 +199,7 @@ class Layout(BaseModel):
     def get_path(self, components: dict[str, str | None]) -> str:
         result: list[str] = []
         for key in self.structure:
-            value = components[key]
+            value = components.get(key, None)
             if self.mapping and key in self.mapping and value in self.mapping[key]:
                 value = self.mapping[key][value]
             if value is None:
