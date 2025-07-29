@@ -13,9 +13,6 @@ from appm.utils import slugify
 
 yaml = YAML()
 
-with open("examples/template.yaml") as file:
-    data = yaml.load(file)
-
 STRUCTURES = {"year", "summary", "internal", "researcherName", "organisationName"}
 
 
