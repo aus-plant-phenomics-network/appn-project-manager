@@ -29,11 +29,14 @@ file:
   "bin": 
     sep: "_"
     default: 
+      date: "2025"
       procLevel: raw 
     components: 
       - sep: "-"
         components: 
-          - ['date', '\d{8}']
+          - name: 'date'
+            pattern: '\d{8}'
+            required: false
           - ['time', '\d{6}']
       - ['site', '[^_.]+']
       - ['sensor', '[^_.]+']

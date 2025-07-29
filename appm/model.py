@@ -51,11 +51,15 @@ class Group(BaseModel):
 
     def validate_names(self) -> Self:
         self._names: list[str] = []
+        self._optional_names: set[str] = set()
         for field in self.fields:
             if isinstance(field, Field):
                 self._names.append(field.name)
+                if not field.required:
+                    self._optional_names.add(field.name)
             else:
                 self._names.extend(field.names)
+                self._optional_names.update(field.optional_names)
         return self
 
     def validate_regex(self) -> Self:
@@ -87,12 +91,24 @@ class Group(BaseModel):
         return self._names
 
     @property
+    def optional_names(self) -> set[str]:
+        return self._optional_names
+
+    @property
     def regex(self) -> str:
         return self._regex
 
 
 class Extension(Group):
     default: dict[str, str] | None = None
+
+    @property
+    def default_names(self) -> set[str]:
+        return set() if not self.default else set(self.default.keys())
+
+    @property
+    def all_names(self) -> set[str]:
+        return set(self.names) | self.default_names
 
     def validate_regex(self) -> Self:
         self = super().validate_regex()
@@ -111,12 +127,6 @@ class Extension(Group):
             raise ValueError("Field component must not contain reserved key: rest")
         return self
 
-    def validate_available_names(self) -> Self:
-        self._available_names = set(self.names)
-        if self.default:
-            self._available_names.update(set(self.default.keys()))
-        return self
-
     @model_validator(mode="after")
     def validate_extension(self) -> Self:
         return (
@@ -125,12 +135,7 @@ class Extension(Group):
             .validate_regex()
             .validate_unique_names()
             .validate_reserved_name()
-            .validate_available_names()
         )
-
-    @property
-    def available_names(self) -> set[str]:
-        return self._available_names
 
     def match(self, name: str) -> dict[str, str | None]:
         m = re.match(self.regex, name)
@@ -236,11 +241,15 @@ class Template(BaseModel):
 
     def validate_file_name_subset_layout(self) -> Self:
         for ext, decl in self.file.items():
-            if not self.parsed_layout.structure_set.issubset(decl.available_names):
-                raise ValueError(
-                    f"""Component fields must be a superset of layout fields. 
-                    Extension: {ext}. Component fields: {decl.available_names}. Layout fields: {self.parsed_layout}"""
-                )
+            for field in self.parsed_layout.structure_set:
+                if field not in decl.all_names:
+                    raise ValueError(
+                        f"Component fields must be a superset of layout fields: {field}. Ext: {ext}"
+                    )
+                if field in decl.optional_names and field not in decl.default_names:
+                    raise ValueError(
+                        f"Optional field that is also a layout field must have a default value: {field}. Ext: {ext}"
+                    )
         return self
 
     @property

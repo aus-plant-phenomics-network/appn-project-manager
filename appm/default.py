@@ -1,5 +1,5 @@
 DEFAULT_TEMPLATE = {
-    "version": "0.0.1",
+    "version": "0.0.3",
     "naming_convention": {
         "sep": "_",
         "structure": [

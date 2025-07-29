@@ -3,6 +3,7 @@ from typing import Any
 
 import pytest
 
+from appm.exceptions import FileFormatMismatch
 from appm.manager import ProjectManager
 from appm.model import Metadata
 
@@ -13,6 +14,25 @@ def overwrite(base: dict[str, Any], change: dict[str, Any]) -> dict[str, Any]:
     for k, v in change.items():
         base[k] = v
     return base
+
+
+@pytest.fixture
+def default_components() -> dict[str, str | None]:
+    return {
+        "date": "20201010",
+        "time": "122022",
+        "site": "adelaide",
+        "sensor": "oak",
+        "trial": "trial-alpha",
+        "procLevel": "raw",
+        "rest": ".bin",
+    }
+
+
+def build_name(components: dict[str, str | None]) -> str:
+    if components["procLevel"]:
+        return f"{components['date']}-{components['time']}_{components['site']}_{components['sensor']}_{components['trial']}_{components['procLevel']}{components['rest']}"
+    return f"{components['date']}-{components['time']}_{components['site']}_{components['sensor']}_{components['trial']}{components['rest']}"
 
 
 @pytest.fixture
@@ -97,3 +117,92 @@ def test_get_project_name(
         root=tmp_path, template=FIXTURE_PATH / template, **metadata
     )
     assert exp_name == model.metadata.project_name
+    assert model.location == tmp_path / exp_name
+
+
+@pytest.mark.parametrize(
+    "change, overwrite_component, layout",
+    (
+        ({}, {}, "adelaide/oak/20201010/trial-alpha/T0-raw"),
+        (
+            {"date": "20250101", "time": "150001", "site": "waite"},
+            {},
+            "waite/oak/20250101/trial-alpha/T0-raw",
+        ),
+        ({"procLevel": "T0-raw"}, {}, "adelaide/oak/20201010/trial-alpha/T0-raw"),
+        ({"procLevel": "T1-proc"}, {}, "adelaide/oak/20201010/trial-alpha/T1-proc"),
+        ({"procLevel": "T2-trait"}, {}, "adelaide/oak/20201010/trial-alpha/T2-trait"),
+        ({"procLevel": "raw"}, {}, "adelaide/oak/20201010/trial-alpha/T0-raw"),
+        ({"procLevel": "proc"}, {}, "adelaide/oak/20201010/trial-alpha/T1-proc"),
+        ({"procLevel": "trait"}, {}, "adelaide/oak/20201010/trial-alpha/T2-trait"),
+        (
+            {"procLevel": None},
+            {"procLevel": "raw"},
+            "adelaide/oak/20201010/trial-alpha/T0-raw",
+        ),
+        (
+            {"procLevel": None, "rest": "_camera-2_setup-1"},
+            {"procLevel": "raw"},
+            "adelaide/oak/20201010/trial-alpha/T0-raw",
+        ),
+    ),
+)
+def test_match_file_name_and_layout_default_model(
+    change: dict[str, str | None],
+    overwrite_component: dict[str, str | None],
+    layout: str,
+    m_default: ProjectManager,
+    default_components: dict[str, str | None],
+) -> None:
+    components = overwrite(default_components, change)
+    name = build_name(components)
+    assert overwrite(components, overwrite_component) == m_default.match(name)
+    assert layout == m_default.get_file_placement(name)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "2024-01-01_10-10-10_adelaide_oak_trial-alpha_raw.bin",
+        "adelaide_lidar_2024.bin",
+        "20250101_adelaide_lidar_0_raw.bin",
+    ],
+)
+def test_match_file_name_default_model_expects_fails(
+    name: str, m_default: ProjectManager
+) -> None:
+    with pytest.raises(FileFormatMismatch):
+        m_default.match(name)
+
+
+def test_init_project(m_default: ProjectManager) -> None:
+    m_default.init_project()
+    assert m_default.location.exists()
+    assert (m_default.location / m_default.METADATA_NAME).exists()
+
+
+def test_load_project(m_default: ProjectManager) -> None:
+    m_default.init_project()
+    m = ProjectManager.load_project(m_default.location)
+    assert m_default.location == m.location
+    assert m_default.metadata.model_dump() == m.metadata.model_dump()
+
+
+def test_init_project_from_template_dict(
+    m_default: ProjectManager, default_meta: dict[Any, Any], tmp_path: Path
+) -> None:
+    # From dict
+    m = ProjectManager.from_template(
+        root=tmp_path, template=m_default.metadata.model_dump(), **default_meta
+    )
+    assert m_default.location == m.location
+    assert m_default.metadata.model_dump() == m.metadata.model_dump()
+
+
+def test_init_project_from_template_no_template_val(
+    m_default: ProjectManager, default_meta: dict[Any, Any], tmp_path: Path
+) -> None:
+    # From dict
+    m = ProjectManager.from_template(root=tmp_path, template=None, **default_meta)
+    assert m_default.location == m.location
+    assert m_default.metadata.model_dump() == m.metadata.model_dump()
