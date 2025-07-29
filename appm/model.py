@@ -40,15 +40,13 @@ class Group(BaseModel):
 
     def validate_components(self) -> Self:
         if not self.components:
-            raise ValueError(f"Field cannot be empty: {self.components}")
+            raise ValueError(f"Components cannot be empty: {self.components}")
         self._fields: list[Field | Group] = []
         for field in self.components:
             if isinstance(field, tuple | list):
                 self._fields.append(Field.from_tuple(field))
             elif isinstance(field, Field | Group):
                 self._fields.append(field)
-            else:
-                raise ValueError(f"Invalid field type: {type(field)}")
         return self
 
     def validate_names(self) -> Self:
@@ -58,8 +56,6 @@ class Group(BaseModel):
                 self._names.append(field.name)
             else:
                 self._names.extend(field.names)
-        if not self._names:
-            raise ValueError(f"Vacuous group: {self.components}")
         return self
 
     def validate_regex(self) -> Self:
@@ -79,7 +75,7 @@ class Group(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_model(self) -> Self:
+    def validate_group(self) -> Self:
         return self.validate_components().validate_names().validate_regex()
 
     @property
@@ -122,7 +118,7 @@ class Extension(Group):
         return self
 
     @model_validator(mode="after")
-    def validate_model(self) -> Self:
+    def validate_extension(self) -> Self:
         return (
             self.validate_components()
             .validate_names()
@@ -141,12 +137,11 @@ class Extension(Group):
         if not m:
             raise FileFormatMismatch(f"Name: {name}. Pattern: {self.regex}")
         result = m.groupdict()
-        if not self.default:
-            return result
-        return {
-            k: v if v is not None else self.default.get(k, None)
-            for k, v in result.items()
-        }
+        if self.default:
+            for k, v in self.default.items():
+                if result.get(k) is None:
+                    result[k] = v
+        return result
 
 
 type File = dict[str, Extension]
@@ -165,7 +160,7 @@ class Layout(BaseModel):
         return self._structure_set
 
     @model_validator(mode="after")
-    def validate_mapping_key(self) -> Self:
+    def validate_layout(self) -> Self:
         self._structure_set = set(self.structure)
         if self.mapping:
             if not set(self.mapping.keys()).issubset(self._structure_set):
@@ -199,7 +194,7 @@ class NamingConv(BaseModel):
     ]
 
     @model_validator(mode="after")
-    def validate_structure_values(self) -> Self:
+    def validate_naming_convention(self) -> Self:
         """Validate structure value
 
         structure:
@@ -234,20 +229,31 @@ class Template(BaseModel):
             self._layout = self.layout
         return self
 
+    def validate_file_non_empty(self) -> Self:
+        if not self.file:
+            raise ValueError("Empty extension")
+        return self
+
+    def validate_file_name_subset_layout(self) -> Self:
+        for ext, decl in self.file.items():
+            if not self.parsed_layout.structure_set.issubset(decl.available_names):
+                raise ValueError(
+                    f"""Component fields must be a superset of layout fields. 
+                    Extension: {ext}. Component fields: {decl.available_names}. Layout fields: {self.parsed_layout}"""
+                )
+        return self
+
     @property
     def parsed_layout(self) -> Layout:
         return self._layout
 
     @model_validator(mode="after")
-    def validate_format_and_layout(self) -> Self:
-        self = self.validate_layout()
-        for ext, decl in self.file.items():
-            if not self.parsed_layout.structure_set.issubset(decl.available_names):
-                raise ValueError(
-                    f"""Format fields must be a superset of layout fields. 
-                    Extension: {ext}. Format fields: {decl.available_names}. Layout fields: {self.parsed_layout}"""
-                )
-        return self
+    def validate_template(self) -> Self:
+        return (
+            self.validate_layout()
+            .validate_file_non_empty()
+            .validate_file_name_subset_layout()
+        )
 
 
 class Metadata(BaseModel):

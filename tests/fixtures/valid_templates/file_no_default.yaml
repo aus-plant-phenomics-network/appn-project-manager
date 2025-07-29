@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=../../../schema/yaml_template_schema.json
+version: 0.0.3
+naming_convention: 
+  sep: "_" 
+  structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName']
+layout: 
+  structure: ['site', 'sensor', 'date', 'trial', 'procLevel']
+  mapping: 
+    procLevel:
+      raw: 'T0-raw'
+      proc: 'T1-proc'
+      trait: 'T2-trait'
+file: 
+  "*": 
+    sep: "_"
+    components: 
+      - sep: "-"
+        components: 
+          - ['date', '\d{8}']
+          - ['time', '\d{6}']
+      - ['site', '[^_.]+']
+      - ['sensor', '[^_.]+']
+      - ['trial', '[^_.]+']
+      - name: 'procLevel' 
+        pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
+        required: false
