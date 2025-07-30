@@ -125,7 +125,7 @@ coverage:                                          ## Run the tests and generate
 .PHONY: test
 test:                                              ## Run the tests
 	@echo "${INFO} Running test cases... 🧪"
-	@uv run pytest tests 
+	@uv run pytest tests
 	@echo "${OK} Tests passed ✨"
 
 .PHONY: test-all
@@ -169,4 +169,3 @@ docs-linkcheck-full:                               ## Run the full link check on
 	@echo "${INFO} Running full link check... 🔗"
 	@uv run sphinx-build -b linkcheck ./docs ./docs/_build -D linkcheck_anchors=0 >/dev/null 2>&1
 	@echo "${OK} Full link check complete"
-
