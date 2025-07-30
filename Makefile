@@ -169,3 +169,9 @@ docs-linkcheck-full:                               ## Run the full link check on
 	@echo "${INFO} Running full link check... 🔗"
 	@uv run sphinx-build -b linkcheck ./docs ./docs/_build -D linkcheck_anchors=0 >/dev/null 2>&1
 	@echo "${OK} Full link check complete"
+
+.PHONY: publish
+publish:
+	@rm -rf dist
+	@uv build
+	@uv publish
