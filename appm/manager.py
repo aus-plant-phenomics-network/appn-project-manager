@@ -99,7 +99,7 @@ class ProjectManager:
                 file,
             )
 
-    def copy_file(self, src_path: str | Path) -> None:
+    def copy_file(self, src_path: str | Path) -> Path:
         """Copy a file located at `src_path` to an appropriate
         location in the project.
 
@@ -110,6 +110,7 @@ class ProjectManager:
         dst_path = self.location / self.get_file_placement(src_path.name)
         dst_path.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src_path, dst_path)
+        return dst_path
 
     @classmethod
     def from_template(
