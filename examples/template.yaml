@@ -2,10 +2,12 @@
 version: 0.0.5
 naming_convention:
   sep: "_"
-  structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName']
+  structure: ['year', 'date',  'summary', 'internal', 'researcherName', 'organisationName']
 layout:
   structure: ['site', 'sensor', 'date', 'trial', 'procLevel']
   mapping:
+    sensor:
+      oak: "oak-d"
     procLevel:
       raw: 'T0-raw'
       proc: 'T1-proc'
