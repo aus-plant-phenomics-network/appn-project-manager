@@ -25,6 +25,10 @@ class Field(BaseModel):
     def regex(self) -> str:
         return f"(?P<{self.name}>{self.pattern})"
 
+    @property
+    def js_regex(self) -> str:
+        return f"(?<{self.name}>{self.pattern})"
+
     @classmethod
     def from_tuple(cls, value: tuple[str, str] | list[str]) -> Field:
         assert len(value) == 2
@@ -68,23 +72,30 @@ class Group(BaseModel):
 
     def validate_regex(self) -> Self:
         regex_str = []
+        js_regex_str = []
         for i, field in enumerate(self.fields):
             is_optional = isinstance(field, Field) and not field.required
             pattern = field.regex
+            js_pattern = field.js_regex
 
             if i == 0:
                 if is_optional:
                     # First field, no separator; make only field optional
                     regex_str.append(f"(?:{pattern})?")
+                    js_regex_str.append(f"(?:{js_pattern})?")
                 else:
                     regex_str.append(pattern)
+                    js_regex_str.append(js_pattern)
             else:
                 if is_optional:
                     # Wrap separator + field together as optional
                     regex_str.append(f"(?:{self.sep}{pattern})?")
+                    js_regex_str.append(f"(?:{self.sep}{js_pattern})?")
                 else:
                     regex_str.append(f"{self.sep}{pattern}")
+                    js_regex_str.append(f"{self.sep}{js_pattern}")
         self._regex = "".join(regex_str)
+        self._js_regex = "".join(js_regex_str)
         return self
 
     @model_validator(mode="after")
@@ -111,6 +122,10 @@ class Group(BaseModel):
     def regex(self) -> str:
         return self._regex
 
+    @property
+    def js_regex(self) -> str:
+        return self._js_regex
+
 
 class Extension(Group):
     default: dict[str, str] | None = None
@@ -126,6 +141,7 @@ class Extension(Group):
     def validate_regex(self) -> Self:
         super().validate_regex()
         self._regex = f"^{self._regex}(?P<rest>.*)$"
+        self._js_regex = f"^{self._js_regex}(?<rest>.*)$"
         return self
 
     def validate_unique_names(self) -> Self:
