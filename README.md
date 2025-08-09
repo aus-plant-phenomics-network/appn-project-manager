@@ -55,7 +55,7 @@ pm.copy_file("data/20240601-120000_SiteA_SensorX_Trial1_T0-raw.csv")
 - tests – Unit tests and fixtures
 
 ## Development
-- Python 3.12+
+- Python 3.11+
 - Pydantic
 - ruamel.yaml
 - pytest for testing

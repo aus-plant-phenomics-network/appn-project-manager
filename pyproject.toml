@@ -1,9 +1,9 @@
 [project]
 name = "appm"
-version = "0.0.7"
+version = "0.0.8"
 description = "APPN Phenomate Project Manager"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.11.7",
     "ruamel-yaml>=0.18.14",
@@ -131,7 +131,7 @@ docstring-code-line-length = 90
 
 [tool.mypy]
 packages = ["appm"]
-python_version = "3.12"
+python_version = "3.11"
 disallow_any_generics = false
 disallow_untyped_decorators = true
 disallow_untyped_calls = true
