@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=../schema/yaml_template_schema.json
+# e.g. 2025-08-14_06-25-53_306635_0814_test2_imu1_0.bin
+version: 0.0.8
+naming_convention:
+  sep: "_"
+  structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName'] 
+layout:
+  structure: ['sensor', 'date', 'trial', 'procLevel']
+  mapping:
+    procLevel:
+      raw: 'T0-raw'
+      proc: 'T1-proc'
+      trait: 'T2-trait'
+file:
+  "*":
+    sep: "_"
+    default:
+      procLevel: raw
+    components:
+      - sep: "_"
+        components:
+          - ['date', '\d{4}-\d{2}-\d{2}']
+          - ['time', '\d{2}-\d{2}-\d{2}']
+      - ['ms', '\d{6}']
+      - ['dateshort', '\d{4}']
+      - ['trial', '[^_.]+']
+      - ['sensor', '[^_.]+']
+      - name: 'procLevel'
+        pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
+        required: false
+

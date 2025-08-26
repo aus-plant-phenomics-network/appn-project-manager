@@ -1,11 +1,14 @@
-# yaml-language-server: $schema=../../../schema/yaml_template_schema.json
-version: 0.0.9
+# yaml-language-server: $schema=../schema/yaml_template_schema.json
+# e.g. 20241023-225313_horsham_oak_trial-0_imu_camera-0.bin
+version: 0.0.5
 naming_convention:
   sep: "_"
-  structure: [] # Shouldn't be empty
+  structure: ['year', 'date',  'summary', 'internal', 'researcherName', 'organisationName']
 layout:
   structure: ['site', 'sensor', 'date', 'trial', 'procLevel']
   mapping:
+    sensor:
+      oak: "oak-d"
     procLevel:
       raw: 'T0-raw'
       proc: 'T1-proc'

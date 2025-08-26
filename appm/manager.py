@@ -81,7 +81,7 @@ class ProjectManager:
     def init_project(self) -> None:
         """Create a project:
 
-        - Determine the project's name from nameing_convention and metadata
+        - Determine the project's name from naming_convention and metadata
         - Create a folder based on project's root and project name
         - Create a metadata file in the project's location
         """

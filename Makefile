@@ -81,6 +81,7 @@ lock:                                              ## Rebuild lockfiles from scr
 release:                                           ## Bump version and create release tag
 	@echo "${INFO} Preparing for release... 📦"
 	@make clean
+	@find ./tests/fixtures -type f \( -name "*.yaml" -o -name "*.yml" \) -exec sed -i -e "s/0.0.5/0.0.8/g" {} +
 	@uv run bump-my-version bump $(bump)
 	@make build
 	@echo "${OK} Release complete 🎉"
