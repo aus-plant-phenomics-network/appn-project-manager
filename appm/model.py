@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from typing import Self
-
 from pathlib import Path
+from typing import Self
 
 from pydantic import BaseModel, model_validator
 from ruamel.yaml import YAML
@@ -15,7 +14,16 @@ from appm.utils import slugify
 
 yaml = YAML()
 
-STRUCTURES = {"year", "summary", "project", "site", "platform", "internal", "researcherName", "organisationName"}
+STRUCTURES = {
+    "year",
+    "summary",
+    "project",
+    "site",
+    "platform",
+    "internal",
+    "researcherName",
+    "organisationName",
+}
 
 
 class Field(BaseModel):
@@ -312,23 +320,22 @@ class Metadata(BaseModel):
 
 
 class Project(Template):
-    """
-    Constructs a directory path or single directory, depending on the naming_convention.layout.sep value.
-    
-    If sep == '\', then naming_convention.structure[] elements are joined as a multiple 
+    r"""Constructs a directory path or single directory, depending on the naming_convention.layout.sep value.
+
+    If sep == '\', then naming_convention.structure[] elements are joined as a multiple
     element Path
     else, the elements are concatenated with the sep string to form a single directory.
-    
+
     e.g.
-    structure: ['organisationName', 'project', 'site', 'platform'] 
+    structure: ['organisationName', 'project', 'site', 'platform']
     if sep == '\'
       result = <root>/organisationName/project/site/platform
-    
+
     if sep == '_'
       result = <root>/organisationName_project_site_platform
     """
+
     meta: Metadata
-    
 
     @property
     def project_name(self) -> Path:
@@ -345,10 +352,6 @@ class Project(Template):
                 elif field == "internal":
                     value = "internal" if value else "external"
                     name.append(value)
-        if self.naming_convention.sep == '\':
+        if self.naming_convention.sep == "\\":
             return Path(*name)
-        else:
-            return Path(self.naming_convention.sep.join(name))
-        
-        
-        
+        return Path(self.naming_convention.sep.join(name))

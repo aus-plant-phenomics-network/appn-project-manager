@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../../../schema/yaml_template_schema.json
-version: 0.0.9
+version: 0.0.10
 naming_convention:
   sep: "_"
   structure: ['year', 'summary', 'internal']

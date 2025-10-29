@@ -49,7 +49,7 @@ An example template file:
 version: 0.0.8
 naming_convention:
   sep: "_"
-  structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName'] 
+  structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName']
 layout:
   structure: ['sensor', 'date', 'trial', 'procLevel']
   mapping:
@@ -77,8 +77,8 @@ file:
 
 ```
 
-Using an input file named: ```2025-08-14_06-30-03_393242_0814_test2_jai1_0.bin``` the above 
-template will output files to the follwoing directory:
+Using an input file named: ```2025-08-14_06-30-03_393242_0814_test2_jai1_0.bin``` the above
+template will output files to the following directory:
 ```
 jai1/2025-08-14/test2/T0-raw
 
@@ -92,7 +92,7 @@ and the file(s) will have the name:
 2025-08-14_06-30-03_393242_0814_test2_jai1_0_preproc-0.jpeg
 ```
 
-Programatically this is done using the following method:
+Programmatically this is done using the following method:
 
 ```py
 pm.copy_file("data/20240601-120000_SiteA_SensorX_Trial1_T0-raw.csv")

@@ -20,11 +20,11 @@
 #
 # Inputs from Phenomate GUI:
 #  year = 2025
-#  summary = test-tiff-lzw-v2 
+#  summary = test-tiff-lzw-v2
 #  internal = T | F
 #  researcherName = josh
 #  organisationName = appn-data
-# 
+#
 # Final output structure:
 #
 # 2025_test-tiff-lzw-v2_internal_josh_appn-data
@@ -37,7 +37,7 @@
 version: 0.0.8
 naming_convention:
   sep: "_"
-  structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName'] 
+  structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName']
 layout:
   structure: ['sensor', 'date', 'trial', 'procLevel']
   mapping:
@@ -62,4 +62,3 @@ file:
       - name: 'procLevel'
         pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
         required: false
-

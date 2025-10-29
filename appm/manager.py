@@ -110,15 +110,15 @@ class ProjectManager:
         dst_path = self.location / self.get_file_placement(src_path.name)
         dst_path.mkdir(parents=True, exist_ok=True)
 
-        # Write the source path and filename to a file in the destination directory 
+        # Write the source path and filename to a file in the destination directory
         # This is needed so as to copy other non '.bin' files associated with the file,
-        # particularly for IMU processing which currently (13/10/2025) requires the     
+        # particularly for IMU processing which currently (13/10/2025) requires the
         # csv files stored along with the bin data that contain the Amiga system timestamp.
-        file_path = dst_path / (src_path.name + '.origin')
+        file_path = dst_path / (src_path.name + ".origin")
         # Create a file in the destination directory with the same name as the source file,
-        # and append a '.origin' file extension. Then write the full source path and 
+        # and append a '.origin' file extension. Then write the full source path and
         # filename to the file
-        with open(file_path, "w", encoding="utf-8") as f:
+        with file_path.open("w", encoding="utf-8") as f:
             f.write(str(src_path))
 
         shutil.copy2(src_path, dst_path)
