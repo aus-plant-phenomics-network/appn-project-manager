@@ -109,6 +109,18 @@ class ProjectManager:
         src_path = validate_path(src_path)
         dst_path = self.location / self.get_file_placement(src_path.name)
         dst_path.mkdir(parents=True, exist_ok=True)
+
+        # Write the source path and filename to a file in the destination directory 
+        # This is needed so as to copy other non '.bin' files associated with the file,
+        # particularly for IMU processing which currently (13/10/2025) requires the     
+        # csv files stored along with the bin data that contain the Amiga system timestamp.
+        file_path = dst_path / (src_path.name + '.origin')
+        # Create a file in the destination directory with the same name as the source file,
+        # and append a '.origin' file extension. Then write the full source path and 
+        # filename to the file
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(str(src_path))
+
         shutil.copy2(src_path, dst_path)
         return dst_path
 
@@ -118,6 +130,9 @@ class ProjectManager:
         root: str | Path,
         year: int,
         summary: str,
+        project: str,
+        site: str,
+        platform: str,
         internal: bool = True,
         template: str | Path | dict[str, Any] | None = None,
         researcherName: str | None = None,
@@ -130,9 +145,12 @@ class ProjectManager:
             template (str | Path | dict[str, Any]): path to template file or the template content.
             year (int): meta information - year
             summary (str): meta information - summary
+            project (str): meta information - e.g. 2025_OzBarley,... To be sourced from currated project data (Excel)
+            site (str): meta information - e.g. Roseworthy, Gatton,... To be sourced from currated project data (Excel)
+            platform  (str): meta information - e.g. Amiga, Gobi,... To be sourced from currated project data (Excel)
             internal (bool, optional): meta information - internal. Defaults to True.
-            researcherName (str | None, optional): meta information - researcher name. Defaults to None.
-            organisationName (str | None, optional): meta information - organisation name. Defaults to None.
+            researcherName (str | None, optional): meta information - researcher name. Defaults to None. - To be sourced from currated project data (Excel)
+            organisationName (str | None, optional): meta information - organisation name. Defaults to None. - To be sourced from currated project data (Excel)
 
         Returns:
             ProjectManager: ProjectManager object
@@ -153,6 +171,9 @@ class ProjectManager:
         metadata["meta"] = {
             "year": year,
             "summary": summary,
+            "project": project,
+            "site": site,
+            "platform": platform,
             "internal": internal,
             "researcherName": researcherName,
             "organisationName": organisationName,

@@ -78,6 +78,9 @@ def default_meta() -> dict[Any, Any]:
     return Metadata(
         year=2024,
         summary="test project",
+        project="OzBarley",
+        site="APPNDataOffice",
+        platform="phenomate",
         internal=True,
         researcherName="Hoang Son Le",
         organisationName="APPN",
@@ -128,6 +131,9 @@ def m_default(tmp_path: Path, default_meta: dict[Any, Any]) -> ProjectManager:
             {
                 "year": 2020,
                 "summary": "demo project",
+                "project": "OzDataTest",
+                "site": "APPNDataCentral",
+                "platform": "phenomate",
                 "internal": False,
                 "researcherName": None,
                 "organisationName": None,

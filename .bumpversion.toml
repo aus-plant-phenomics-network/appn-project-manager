@@ -20,6 +20,8 @@ setup_hooks = []
 pre_commit_hooks = []
 post_commit_hooks = []
 
+# Please note, use the follwoing to change versions in the tests
+# find ./tests/fixtures -type f \( -name "*.yaml" -o -name "*.yml" \) -exec sed -i -e "s/0.0.X/0.0.Y/g" {} +
 
 [[tool.bumpversion.files]]
 filename = "./pyproject.toml"
@@ -41,4 +43,7 @@ filename = "./appm/default.py"
 search  = "\"version\": \"{current_version}\""
 replace = "\"version\": \"{new_version}\""
 
-
+[[tool.bumpversion.files]]
+filename = "./docs/source/conf.py"
+search  = "release = \'{current_version}\'"
+replace = "release = \'{new_version}\'"

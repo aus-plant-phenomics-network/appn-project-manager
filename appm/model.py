@@ -4,6 +4,8 @@ import re
 from collections import Counter
 from typing import Self
 
+from pathlib import Path
+
 from pydantic import BaseModel, model_validator
 from ruamel.yaml import YAML
 
@@ -13,7 +15,7 @@ from appm.utils import slugify
 
 yaml = YAML()
 
-STRUCTURES = {"year", "summary", "internal", "researcherName", "organisationName"}
+STRUCTURES = {"year", "summary", "project", "site", "platform", "internal", "researcherName", "organisationName"}
 
 
 class Field(BaseModel):
@@ -227,6 +229,9 @@ class NamingConv(BaseModel):
     structure: list[str] = [
         "year",
         "summary",
+        "project",
+        "site",
+        "platform",
         "internal",
         "researcherName",
         "organisationName",
@@ -298,16 +303,35 @@ class Template(BaseModel):
 class Metadata(BaseModel):
     year: int
     summary: str
+    project: str
+    site: str
+    platform: str
     internal: bool = True
     researcherName: str | None = None
     organisationName: str | None = None
 
 
 class Project(Template):
+    """
+    Constructs a directory path or single directory, depending on the naming_convention.layout.sep value.
+    
+    If sep == '\', then naming_convention.structure[] elements are joined as a multiple 
+    element Path
+    else, the elements are concatenated with the sep string to form a single directory.
+    
+    e.g.
+    structure: ['organisationName', 'project', 'site', 'platform'] 
+    if sep == '\'
+      result = <root>/organisationName/project/site/platform
+    
+    if sep == '_'
+      result = <root>/organisationName_project_site_platform
+    """
     meta: Metadata
+    
 
     @property
-    def project_name(self) -> str:
+    def project_name(self) -> Path:
         """Project name based on metadata and naming convention definition"""
         fields = self.naming_convention.structure
         name: list[str] = []
@@ -321,4 +345,10 @@ class Project(Template):
                 elif field == "internal":
                     value = "internal" if value else "external"
                     name.append(value)
-        return self.naming_convention.sep.join(name)
+        if self.naming_convention.sep == '\':
+            return Path(*name)
+        else:
+            return Path(self.naming_convention.sep.join(name))
+        
+        
+        

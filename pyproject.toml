@@ -9,15 +9,20 @@ dependencies = [
     "ruamel-yaml>=0.18.14",
 ]
 
+[project.optional-dependencies]
+docs = ["sphinx"]
+
 [dependency-groups]
 analysis = [
     "mypy>=1.17.0",
     "pre-commit>=4.2.0",
     "ruff>=0.12.5",
+    "bump-my-version>=0.21.0"
 ]
 dev = [
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
+    "sphinx-rtd-theme>=3.0.2",
 ]
 
 [build-system]
