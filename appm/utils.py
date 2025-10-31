@@ -3,6 +3,11 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+import logging
+import zoneinfo
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 from appm.exceptions import NotAFileErr, NotFoundErr
@@ -70,3 +75,25 @@ def validate_path(path: str | Path, is_file: bool = False) -> Path:
     if is_file and not _path.is_file():
         raise NotAFileErr(f"Not a file: {path!s}")
     return _path
+
+
+
+def get_logger(name: str = None):
+    # Check if a shared logger exists
+    shared_logger_name = name
+    if shared_logger_name in logging.Logger.manager.loggerDict:
+        logger = logging.getLogger(shared_logger_name)
+    else:
+        # Create a local logger
+        logger = logging.getLogger(name or __name__)
+        logger.setLevel(logging.INFO)
+
+        # Avoid adding handlers multiple times
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+
+    return logger
+    

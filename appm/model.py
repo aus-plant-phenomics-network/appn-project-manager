@@ -10,7 +10,12 @@ from ruamel.yaml import YAML
 
 from appm.__version__ import __version__
 from appm.exceptions import FileFormatMismatch
-from appm.utils import slugify
+from appm.utils import slugify, get_logger
+
+import zoneinfo
+from zoneinfo import ZoneInfo
+
+from datetime import datetime
 
 yaml = YAML()
 
@@ -24,6 +29,8 @@ STRUCTURES = {
     "researcherName",
     "organisationName",
 }
+
+shared_logger = get_logger('celery')
 
 
 class Field(BaseModel):
@@ -196,10 +203,99 @@ class Extension(Group):
 
 File = dict[str, Extension]
 
+# Define common aliases
+ALIASES = {
+    "z": ["Etc/UTC", "UTC"],
+    "utc": ["Etc/UTC", "UTC"],
+    "gmt": ["Etc/GMT", "GMT"],
+    "aest": ["Australia/Sydney", "Australia/Melbourne", "Australia/Brisbane"],
+    "aedt": ["Australia/Sydney", "Australia/Melbourne"],
+    "acst": ["Australia/Adelaide",  "Australia/Darwin"],
+    "acdt": ["Australia/Adelaide"],
+    "awst": ["Australia/Perth"], 
+    "awdt": ["Australia/Perth"],
+    "acwst": ["Australia/Eucla"],
+    "lhst": ["Australia/Lord_Howe"],
+    "lhdt": ["Australia/Lord_Howe"],
+    "nft": ["Pacific/Norfolk"],
+    "nfdt": ["Pacific/Norfolk"],
+    "cxt": ["Indian/Christmas"],
+    "cct": ["Indian/Cocos"]
+    # Add more if needed
+}
+
+class DateConvert():
+    base_timezone: str # e.g. UTC
+    output_timezone: str # e.g. "Australia/Adelaide"
+    
+    def __init__(self, date_convert : dict[str, str]):
+        shared_logger.debug(f'APPM: Initialising DateConvert with: {date_convert}')
+        self.base_timezone = date_convert['base_timezone']
+        self.output_timezone = date_convert['output_timezone']
+
+    def search_timezones(self, query: str):
+        """ matches incomplete timezone area strings to return the full timezone code from IANA timezone database"""
+        query_lower = query.lower()
+
+        # Check aliases first
+        if query_lower in ALIASES:
+            return ALIASES[query_lower]
+
+        # Fallback to substring search
+        matches = [tz for tz in zoneinfo.available_timezones() if query_lower in tz.lower()]
+        return matches
+
+    def convert_date_timezone(self, 
+                            date_str: str, 
+                            date_format_in: str = "%Y-%m-%d %H-%M-%S", 
+                            date_format_out: str = "%Y-%m-%d", 
+                            base_tz: str = 'UTC' , 
+                            output_tz: str = 'Australia/Adelaide') -> str:
+        """
+        Convert a date string from base_tz to output_tz using the given format.
+        
+        Args:
+            date_str (str): The date string to convert.
+            date_format (str): The format of the input date string (e.g., "%Y-%m-%d %H:%M").
+            base_tz (str): The IANA name of the base timezone (e.g., "UTC").
+            output_tz (str): The IANA name of the output timezone (e.g., "Australia/Adelaide").
+        
+        Returns:
+            str: The converted date string in the same format.
+            
+        Example: 
+            
+            date_str = "2025-10-30 02:30"
+            date_format = "%Y-%m-%d %H:%M"
+            base_tz = "UTC"
+            output_tz = "Australia/Adelaide"
+
+            converted = convert_date_timezone(date_str, date_format, base_tz, output_tz)
+            print(converted)  # Output: "2025-10-30 13:00"
+
+        """
+        output_tz_found = self.search_timezones(output_tz)
+        if len(output_tz_found) == 0:
+            raise ValueError(f"Input requested timezone: {output_tz} was not found as valid.")
+        
+        base_tz_found = self.search_timezones(base_tz)
+        if len(base_tz_found) == 0:
+            raise ValueError(f"Input base timezone: {base_tz} was not found as valid.")
+        
+        # Parse the date string with base timezone
+        dt = datetime.strptime(date_str, date_format_in).replace(tzinfo=ZoneInfo(base_tz_found[0]))
+        
+        # Convert to output timezone
+        converted_dt = dt.astimezone(ZoneInfo(output_tz_found[0]))
+        
+        return converted_dt.strftime(date_format_out)    
 
 class Layout(BaseModel):
     structure: list[str]
     mapping: dict[str, dict[str, str]] | None = None
+    # date_convert: dict[str, str] | None = None
+    date_convert: dict[str, str] 
+    # date_convert: DateConvert = DateConvert()
 
     @classmethod
     def from_list(cls, value: list[str]) -> Layout:
@@ -209,21 +305,58 @@ class Layout(BaseModel):
     def structure_set(self) -> set[str]:
         return self._structure_set
 
+    @property
+    def date_convert_obj(self) -> DateConvert:
+        return self._date_convert_obj
+        
     @model_validator(mode="after")
-    def validate_layout(self) -> Self:
+    def validate_layout(cls, self: Self) -> Self:
         self._structure_set = set(self.structure)
         if self.mapping and not set(self.mapping.keys()).issubset(self._structure_set):
             raise ValueError(
                 f"Mapping keys must be a subset of structure. Mapping keys: {set(self.mapping.keys())}, structure: {self.structure}"
             )
+        
+        shared_logger.debug(f'APPM: Layout.validate_layout(): self: {self}')
+            
         return self
-
+    
     def get_path(self, components: dict[str, str | None]) -> str:
         result: list[str] = []
+        component_date: str = None
+        component_time: str = None
+        local_date_time: str
+        
+        # loop through once
+        for key in self.structure:
+            
+            value = components.get(key)
+            shared_logger.info(f'APPM: Layout.get_path(): {key} : {value}')
+            if key == 'date':
+                component_date = value
+            if key == 'time':
+                component_time = value    
+ 
+        # '2025-08-14_06-30-03...bin' -> component_date = '2025-08-14'  component_time = '06-30-03' 
+        date_str = component_date + " " + component_time
+        dc = DateConvert(self.date_convert) 
+        base_tz = dc.base_timezone
+        output_tz = dc.output_timezone
+        date_format_in = "%Y-%m-%d %H-%M-%S"
+        date_format_out = "%Y-%m-%d"
+        convert_date = dc.convert_date_timezone(date_str, date_format_in, date_format_out,  base_tz , output_tz)
+        
         for key in self.structure:
             value = components.get(key)
+
+            # swap the date found in the filename with the converted 
+            # date from UTC to the selected timezone
+            if key == 'date':
+                value = convert_date
+                
             if self.mapping and key in self.mapping and value in self.mapping[key]:
                 value = self.mapping[key][value]
+                
             if value is None:
                 raise ValueError(
                     f"None value for key: {key}. Either set a default for Extension definition, change Extension pattern to capture key value, or rename file."
@@ -275,7 +408,7 @@ class Template(BaseModel):
     version: str = __version__
 
     def validate_layout(self) -> Self:
-        if isinstance(self.layout, list):
+        if isinstance(self.layout, list):            
             self._layout = Layout.from_list(self.layout)
         else:
             self._layout = self.layout
@@ -328,7 +461,7 @@ class Project(Template):
 
     e.g.
     structure: ['organisationName', 'project', 'site', 'platform']
-    if sep == '\'
+    if sep == '/'
       result = <root>/organisationName/project/site/platform
 
     if sep == '_'
@@ -341,6 +474,8 @@ class Project(Template):
     def project_name(self) -> Path:
         """Project name based on metadata and naming convention definition"""
         fields = self.naming_convention.structure
+        shared_logger.debug(f'APPM:Project:project_name() called')
+        
         name: list[str] = []
         for field in fields:
             value = getattr(self.meta, field)
@@ -352,6 +487,8 @@ class Project(Template):
                 elif field == "internal":
                     value = "internal" if value else "external"
                     name.append(value)
-        if self.naming_convention.sep == "\\":
-            return Path(*name)
+        if self.naming_convention.sep == "/":
+            respath =  Path(*name)
+            shared_logger.debug(f'APPM:Project:project_name() respath: {respath}')
+            return (respath)
         return Path(self.naming_convention.sep.join(name))

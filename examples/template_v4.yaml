@@ -33,7 +33,7 @@
 # Final output structure:
 #  <root>/adelaide/sifozbarley/roseworthy/phenomate_1/2025-08-14/run00/T0-raw/jai
 
-version: 0.0.8
+version: 0.0.10
 naming_convention:
   # Use `sep: "/"` to specify elements as separate 
   #   directories : <root>/organisationName/project/site/platform
@@ -48,9 +48,9 @@ layout:
       raw: 'T0-raw'
       proc: 'T1-proc'
       trait: 'T2-trait'
-  # date_convert:
-    # base_timezone: UTC
-    # output_timezone: "Australia/Adelaide"
+  date_convert:
+    base_timezone: 'UTC'
+    output_timezone: 'Australia/Adelaide'
 file:
   "*":
     sep: "_"
@@ -62,7 +62,6 @@ file:
           - ['date', '\d{4}-\d{2}-\d{2}']
           - ['time', '\d{2}-\d{2}-\d{2}']
       - ['ms', '\d{6}']
-      - ['dateshort', '\d{4}']
       - ['run', '[^_.]+']
       - ['sensor', '[^_.]+']
       - name: 'procLevel'

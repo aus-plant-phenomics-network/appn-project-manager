@@ -5,6 +5,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+import logging
+
 from ruamel.yaml import YAML
 
 from appm.__version__ import __version__
@@ -13,11 +15,14 @@ from appm.exceptions import (
     UnsupportedFileExtension,
 )
 from appm.model import Project
-from appm.utils import to_flow_style, validate_path
+from appm.utils import to_flow_style, validate_path, get_logger
 
 yaml = YAML()
 yaml.indent(mapping=2, sequence=4, offset=2)
 yaml.preserve_quotes = True  # optional, if you want to preserve quotes
+
+
+shared_logger = get_logger('celery')
 
 
 class ProjectManager:
@@ -29,11 +34,13 @@ class ProjectManager:
         root: str | Path,
     ) -> None:
         self.root = Path(root)
+        shared_logger.debug(f'APPM: ProjectManager.__init__() self.root: {self.root}')
         self.metadata = Project.model_validate(metadata)
         self.handlers = dict(self.metadata.file.items())
 
     @property
     def location(self) -> Path:
+        shared_logger.debug(f'APPM: ProjectManager.location(): self.root: {self.root}')
         return self.root / self.metadata.project_name
 
     def match(self, name: str) -> dict[str, str | None]:
@@ -90,7 +97,10 @@ class ProjectManager:
 
     def save_metadata(self) -> None:
         """Save the current metadata to the project location"""
+        
         metadata_path = self.location / self.METADATA_NAME
+        shared_logger.debug(f'APPM: ProjectManager.save_metadata() Saving metadat.json file to: {metadata_path}')
+        
         with metadata_path.open("w") as file:
             data = self.metadata.model_dump(mode="json")
             data["version"] = __version__
@@ -106,10 +116,15 @@ class ProjectManager:
         Args:
             src_path (str | Path): path to where src data is found
         """
+        
+        # self.location
         src_path = validate_path(src_path)
-        dst_path = self.location / self.get_file_placement(src_path.name)
-        dst_path.mkdir(parents=True, exist_ok=True)
+        src_placement = self.get_file_placement(src_path.name)   
+        dst_path = self.location / src_placement
 
+        dst_path.mkdir(parents=True, exist_ok=True)
+        
+        shared_logger.info(f'APPM: ProjectManager.copy_file() copying data to: {dst_path}')
         # Write the source path and filename to a file in the destination directory
         # This is needed so as to copy other non '.bin' files associated with the file,
         # particularly for IMU processing which currently (13/10/2025) requires the
@@ -185,20 +200,37 @@ class ProjectManager:
         cls, project_path: Path | str, metadata_name: str | None = None
     ) -> ProjectManager:
         """Load a project from project's path
+        
+        Special consideration is taken if the 'sep' character used is '/', as the root of the 
+        project is then further up the directory tree, dependent on how many parts are present
+        in the naming_convention['structure'] list.
 
         Args:
             project_path (Path | str): path to project to open
             metadata_name (str | None, optional): name for metadata file. If not provided, use "metadata.yaml". Defaults to None.
 
         Returns:
-            ProjectManager: ProjectManager object
+            ProjectManager: ProjectManager object 
         """
+        shared_logger.info(f'APPM: ProjectManager.load_project() {project_path}')
         project_path = validate_path(project_path)
         metadata_path = (
             project_path / cls.METADATA_NAME if not metadata_name else project_path / metadata_name
         )
+        
         metadata_path = validate_path(metadata_path)
-
+        # 
         with metadata_path.open("r") as file:
             metadata = yaml.load(file)
-        return cls(metadata=metadata, root=project_path.parent)
+            
+        naming_delim = metadata.get("naming_convention", {}).get("sep", str)
+        count = 1
+        # This "/" delimiter is a special flag that indicates the base directory 
+        # for the project should be a nested directory with names made up of each element 
+        # of the structure list
+        if naming_delim == '/':
+            structure_list = metadata.get("naming_convention", {}).get("structure", [])
+            # Count the elements
+            count = len(structure_list)
+        shared_logger.info(f'APPM: ProjectManager.load_project(): root: {project_path.parents[count-1]}')
+        return cls(metadata=metadata, root=project_path.parents[count-1])

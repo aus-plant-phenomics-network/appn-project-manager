@@ -152,10 +152,27 @@
           ],
           "default": null,
           "title": "Mapping"
-        }
+        },
+		"date_convert": {
+			
+		  "type": "object",
+		  "properties": {
+          "base_timezone": {
+            "type": "string",
+            "description": "The base timezone, e.g., 'UTC'"
+          },
+          "output_timezone": {
+            "type": "string",
+            "description": "The output timezone, e.g., 'Australia/Adelaide'"
+          }
+          },
+          "required": ["base_timezone", "output_timezone"],
+          "additionalProperties": false
+		},
       },
       "required": [
-        "structure"
+        "structure",
+		"date_convert"
       ],
       "title": "Layout",
       "type": "object"
