@@ -232,6 +232,14 @@ class DateConvert():
         shared_logger.debug(f'APPM: Initialising DateConvert with: {date_convert}')
         self.base_timezone = date_convert['base_timezone']
         self.output_timezone = date_convert['output_timezone']
+        if "input_format" in date_convert:
+            self.input_format = date_convert['input_format']
+        else:
+            self.input_format = "%Y-%m-%d %H-%M-%S"
+        if "output_format" in date_convert:
+            self.output_format = date_convert['output_format']
+        else:
+            self.output_format = '%Y%m%d'
 
     def search_timezones(self, query: str):
         """ matches incomplete timezone area strings to return the full timezone code from IANA timezone database"""
@@ -248,7 +256,7 @@ class DateConvert():
     def convert_date_timezone(self, 
                             date_str: str, 
                             date_format_in: str = "%Y-%m-%d %H-%M-%S", 
-                            date_format_out: str = "%Y-%m-%d", 
+                            date_format_out: str = "%Y%m%d", 
                             base_tz: str = 'UTC' , 
                             output_tz: str = 'Australia/Adelaide') -> str:
         """
@@ -288,14 +296,35 @@ class DateConvert():
         # Convert to output timezone
         converted_dt = dt.astimezone(ZoneInfo(output_tz_found[0]))
         
-        return converted_dt.strftime(date_format_out)    
+        return converted_dt.strftime(date_format_out)
+    
+    
+    def rearrange_date(self, date_str: str, input_order: str = r"(\d{4})-(\d{2})-(\d{2})", format_order: str = "YYYYMMDD") -> str:
+        # Match the date pattern
+        match = re.match(input_order, date_str)
+        if not match:
+            raise ValueError("Date string must be in 'YYYY-MM-DD' format")
+
+        year, month, day = match.groups()
+
+        # Build the new format based on the format_order string
+        format_map = {
+            "YYYY": year,
+            "MM": month,
+            "DD": day
+        }
+
+        # Replace format tokens with actual values
+        for token in format_map:
+            format_order = format_order.replace(token, format_map[token])
+
+        return format_order
+
 
 class Layout(BaseModel):
     structure: list[str]
     mapping: dict[str, dict[str, str]] | None = None
-    # date_convert: dict[str, str] | None = None
     date_convert: dict[str, str] 
-    # date_convert: DateConvert = DateConvert()
 
     @classmethod
     def from_list(cls, value: list[str]) -> Layout:
@@ -322,6 +351,12 @@ class Layout(BaseModel):
         return self
     
     def get_path(self, components: dict[str, str | None]) -> str:
+        """ 
+        Converts the set of keys from the layout['structure'] dictionary into nested set of Posix directories
+      
+        The method will convert the date into a local timezone based on the layout['date_convert'] values.
+                
+        """
         result: list[str] = []
         component_date: str = None
         component_time: str = None
@@ -329,30 +364,40 @@ class Layout(BaseModel):
         
         # loop through once
         for key in self.structure:
-            
             value = components.get(key)
-            shared_logger.info(f'APPM: Layout.get_path(): {key} : {value}')
+            shared_logger.debug(f'APPM: Layout.get_path(): {key} : {value}')
             if key == 'date':
                 component_date = value
-            if key == 'time':
-                component_time = value    
+            
+        # This ensures the time component is found, even if it is not 
+        # specified  in the layout['structure'] list
+        timezone_convert = True
+        if 'time' in components.keys():
+            component_time = components.get('time')
+        else:
+            timezone_convert = False
+            converted_date = component_date
+            shared_logger.debug(f'APPM: Layout.get_path(): No time key in file:components, not converting timezones')
  
-        # '2025-08-14_06-30-03...bin' -> component_date = '2025-08-14'  component_time = '06-30-03' 
-        date_str = component_date + " " + component_time
-        dc = DateConvert(self.date_convert) 
-        base_tz = dc.base_timezone
-        output_tz = dc.output_timezone
-        date_format_in = "%Y-%m-%d %H-%M-%S"
-        date_format_out = "%Y-%m-%d"
-        convert_date = dc.convert_date_timezone(date_str, date_format_in, date_format_out,  base_tz , output_tz)
+        if timezone_convert:
+            # '2025-08-14_06-30-03...bin' -> component_date = '2025-08-14'  component_time = '06-30-03' 
+            date_str = component_date + " " + component_time
+            dc = DateConvert(self.date_convert) 
+            base_tz = dc.base_timezone
+            output_tz = dc.output_timezone
+            # date_format_in = "%Y-%m-%d %H-%M-%S"
+            # date_format_out = "%Y-%m-%d"
+            date_format_in  = dc.input_format
+            date_format_out = dc.output_format
+            converted_date  = dc.convert_date_timezone(date_str, date_format_in, date_format_out,  base_tz , output_tz)
+            shared_logger.info(f'APPM: Layout.get_path(): Converting timezones {base_tz} to {output_tz}')
         
         for key in self.structure:
             value = components.get(key)
-
             # swap the date found in the filename with the converted 
             # date from UTC to the selected timezone
             if key == 'date':
-                value = convert_date
+                value = converted_date
                 
             if self.mapping and key in self.mapping and value in self.mapping[key]:
                 value = self.mapping[key][value]
@@ -377,6 +422,7 @@ class NamingConv(BaseModel):
         "researcherName",
         "organisationName",
     ]
+    
 
     @model_validator(mode="after")
     def validate_naming_convention(self) -> Self:

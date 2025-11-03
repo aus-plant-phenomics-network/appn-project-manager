@@ -124,7 +124,7 @@ class ProjectManager:
 
         dst_path.mkdir(parents=True, exist_ok=True)
         
-        shared_logger.info(f'APPM: ProjectManager.copy_file() copying data to: {dst_path}')
+        shared_logger.debug(f'APPM: ProjectManager.copy_file() copying data to: {dst_path}')
         # Write the source path and filename to a file in the destination directory
         # This is needed so as to copy other non '.bin' files associated with the file,
         # particularly for IMU processing which currently (13/10/2025) requires the
@@ -232,5 +232,5 @@ class ProjectManager:
             structure_list = metadata.get("naming_convention", {}).get("structure", [])
             # Count the elements
             count = len(structure_list)
-        shared_logger.info(f'APPM: ProjectManager.load_project(): root: {project_path.parents[count-1]}')
+        shared_logger.debug(f'APPM: ProjectManager.load_project(): root: {project_path.parents[count-1]}')
         return cls(metadata=metadata, root=project_path.parents[count-1])

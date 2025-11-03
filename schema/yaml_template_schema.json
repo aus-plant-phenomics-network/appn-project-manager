@@ -164,6 +164,14 @@
           "output_timezone": {
             "type": "string",
             "description": "The output timezone, e.g., 'Australia/Adelaide'"
+          },
+		  "input_format": {
+            "type": "string",
+            "description": "The output date format using %Y %m %d %H %M %S components'"
+          },
+		  "output_format": {
+            "type": "string",
+            "description": "The output date format using %Y %m %d  components'"
           }
           },
           "required": ["base_timezone", "output_timezone"],
@@ -184,6 +192,7 @@
           "title": "Sep",
           "type": "string"
         },
+
         "structure": {
           "default": [
             "year",
