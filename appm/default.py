@@ -10,13 +10,18 @@ DEFAULT_TEMPLATE = {
         ],
     },
     "layout": {
-        "structure": ["date", "run", "procLevel", "sensor"],
+        "structure": ["date", "procLevel", "sensor"],
         "mapping": {"procLevel": {"raw": "T0-raw", "proc": "T1-proc", "trait": "T2-trait"}},
-        "date_convert": { "base_timezone": "UTC", "output_timezone": "Australia/Adelaide"},
+        "date_convert": { "base_timezone": "UTC", 
+                          "output_timezone": "Australia/Adelaide", 
+                          "input_format": '%Y-%m-%d %H-%M-%S',
+                          "output_format": '%Y%m%d%z'
+                          },
     },
     "file": {
         "*": {
             "sep": "_",
+            "preprocess": {"find": "", "replace": "", "casesensitive": "false" },
             "default": {"procLevel": "raw"},
             "components": [
                 {

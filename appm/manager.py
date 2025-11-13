@@ -22,8 +22,9 @@ yaml.indent(mapping=2, sequence=4, offset=2)
 yaml.preserve_quotes = True  # optional, if you want to preserve quotes
 
 
-shared_logger = get_logger('celery')
-
+# shared_logger = get_logger('celery')
+from celery.utils.log import get_task_logger
+shared_logger = get_task_logger(__name__)
 
 class ProjectManager:
     METADATA_NAME: str = "metadata.yaml"
@@ -36,7 +37,9 @@ class ProjectManager:
         self.root = Path(root)
         shared_logger.debug(f'APPM: ProjectManager.__init__() self.root: {self.root}')
         self.metadata = Project.model_validate(metadata)
+        # shared_logger.info(f'APPM: ProjectManager.__init__() self.metadata: {self.metadata}')
         self.handlers = dict(self.metadata.file.items())
+        # shared_logger.info(f'APPM: ProjectManager.__init__() self.handlers: {self.handlers}')
 
     @property
     def location(self) -> Path:
@@ -73,7 +76,8 @@ class ProjectManager:
         the file extension format definition, and the file name.
         More concretely, field component - values are matched using the
         RegEx defined in format. Fields that match layout values will be
-        extracted and path-appended in the order they appear in layout.
+        extracted and path-appended in the order they appear in the 
+        [structure] list in layout.
 
         Args:
             name (str): file name
@@ -212,7 +216,7 @@ class ProjectManager:
         Returns:
             ProjectManager: ProjectManager object 
         """
-        shared_logger.info(f'APPM: ProjectManager.load_project() {project_path}')
+        shared_logger.debug(f'APPM: ProjectManager.load_project() {project_path}')
         project_path = validate_path(project_path)
         metadata_path = (
             project_path / cls.METADATA_NAME if not metadata_name else project_path / metadata_name
@@ -234,3 +238,8 @@ class ProjectManager:
             count = len(structure_list)
         shared_logger.debug(f'APPM: ProjectManager.load_project(): root: {project_path.parents[count-1]}')
         return cls(metadata=metadata, root=project_path.parents[count-1])
+
+
+
+
+

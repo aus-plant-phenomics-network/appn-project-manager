@@ -30,8 +30,9 @@ STRUCTURES = {
     "organisationName",
 }
 
-shared_logger = get_logger('celery')
-
+# shared_logger = get_logger('celery')
+from celery.utils.log import get_task_logger
+shared_logger = get_task_logger(__name__)
 
 class Field(BaseModel):
     name: str
@@ -55,6 +56,7 @@ class Field(BaseModel):
 class Group(BaseModel):
     components: list[tuple[str, str] | Field | Group]
     sep: str = "-"
+    
 
     def validate_components(self) -> Self:
         if not self.components:
@@ -73,7 +75,12 @@ class Group(BaseModel):
                 self._fields.append(field)
                 self._normalised_fields.extend(field.normalised_fields)
         return self
-
+        
+    # def validate_preprocess(self) -> Self:
+        # if not self.preprocess:
+            # raise ValueError(f"preprocess cannot be empty: {self.preprocess}")
+        
+        
     def validate_names(self) -> Self:
         self._names: list[str] = []
         self._optional_names: set[str] = set()
@@ -146,6 +153,7 @@ class Group(BaseModel):
 
 class Extension(Group):
     default: dict[str, str] | None = None
+    preprocess : dict[str, str]
 
     @property
     def default_names(self) -> set[str]:
@@ -190,14 +198,34 @@ class Extension(Group):
         )
 
     def match(self, name: str) -> dict[str, str | None]:
-        m = re.match(self.regex, name)
+        find_str = ''
+        replace_str = ''
+        casesensitive = True
+        
+        if self.preprocess:
+            find_str = self.preprocess['find'].strip()
+            replace_str = self.preprocess['replace'].strip()
+            casesensitive = self.preprocess['casesensitive']
+        
+        if (len(find_str) > 0) and (len(replace_str) > 0):  
+            if casesensitive: 
+                name_sub = re.sub(find_str, replace_str, name, flags=re.IGNORECASE)
+            else:
+                name_sub  = re.sub(find_str, replace_str, name)
+        else:
+            name_sub = name
+            
+        shared_logger.debug(f'APPM:Extension.match(): self.regex: {self.regex}')
+        m = re.match(self.regex, name_sub)
         if not m:
-            raise FileFormatMismatch(f"Name: {name}. Pattern: {self.regex}")
+            raise FileFormatMismatch(f"Name: {name_sub}. Pattern: {self.regex}")
         result = m.groupdict()
         if self.default:
             for k, v in self.default.items():
+                shared_logger.debug(f'APPM:Extension.match() self.default.items(): self: {k}  {v}')
                 if result.get(k) is None:
                     result[k] = v
+        shared_logger.debug(f'APPM:Extension.match(): result: {result}')
         return result
 
 
@@ -239,7 +267,7 @@ class DateConvert():
         if "output_format" in date_convert:
             self.output_format = date_convert['output_format']
         else:
-            self.output_format = '%Y%m%d'
+            self.output_format = '%Y%m%d%z'
 
     def search_timezones(self, query: str):
         """ matches incomplete timezone area strings to return the full timezone code from IANA timezone database"""
@@ -256,7 +284,7 @@ class DateConvert():
     def convert_date_timezone(self, 
                             date_str: str, 
                             date_format_in: str = "%Y-%m-%d %H-%M-%S", 
-                            date_format_out: str = "%Y%m%d", 
+                            date_format_out: str = "%Y%m%d%z", 
                             base_tz: str = 'UTC' , 
                             output_tz: str = 'Australia/Adelaide') -> str:
         """
@@ -321,7 +349,67 @@ class DateConvert():
         return format_order
 
 
+    
 class Layout(BaseModel):
+    r"""
+    This class is populated via the YAML input template file and it controls the structure 
+    of the output directory for where to place output data. 
+    
+    The class is dependant on the 'file:' section of the YAML file as the file section defines 
+    the decomposition of the filename:
+
+    Example YAML input for the layout section:
+    
+    yaml
+        layout:
+          structure: [ 'date', 'procLevel', 'sensor' ]
+          mapping:
+            procLevel:
+              raw: 'T0-raw'
+              proc: 'T1-proc'
+              trait: 'T2-trait'
+          date_convert:
+            base_timezone: 'UTC'
+            output_timezone: 'Australia/Adelaide'
+            input_format: '%Y-%m-%d %H-%M-%S'  # concatenated file:components:components: 'date' and 'time'
+            output_format: '%Y%m%d%z'
+        file:
+          "bin":
+            sep: "_"
+            preprocess:
+              find: '-'
+              replace: '_'
+              casesensitve: True
+            default:
+              procLevel: raw   
+            components:
+              - sep: "_"
+                components:
+                  - ['date', '\d{4}-\d{2}-\d{2}']
+                  - ['time', '\d{2}-\d{2}-\d{2}']
+              - ['ms', '\d{6}']
+              - ['site_fn', '[^_.]+']
+              - ['sensor', '[^_.]+']
+              - name: 'procLevel'
+                pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
+                required: false
+    
+        e.g. Input filename: 2025-08-14_06-30-14_783583_horsham_jai1.bin
+    
+        Requested variables:
+            'date':       2025-08-14
+            'procLevel':  T0-raw
+            'sensor':     jai
+        
+        unused variables:
+            'time':       06-30-14
+            'ms':         783583
+            'site_fn':    horsham
+        
+        Output directory:
+            20250814+0930/T0-raw/jai
+    
+    """
     structure: list[str]
     mapping: dict[str, dict[str, str]] | None = None
     date_convert: dict[str, str] 
@@ -463,10 +551,12 @@ class Template(BaseModel):
     def validate_file_non_empty(self) -> Self:
         if not self.file:
             raise ValueError("Empty extension")
+        shared_logger.debug(f'APPM: Template(BaseModel): {self.file}')
         return self
 
     def validate_file_name_subset_layout(self) -> Self:
         for ext, decl in self.file.items():
+            shared_logger.debug(f'APPM: Template():validate_file_name_subset_layout():  {ext}  {decl} ')
             for field in self.parsed_layout.structure_set:
                 if field not in decl.all_names:
                     raise ValueError(
@@ -499,14 +589,14 @@ class Metadata(BaseModel):
 
 
 class Project(Template):
-    r"""Constructs a directory path or single directory, depending on the naming_convention.layout.sep value.
+    r"""
+    Constructs a directory path or single directory, depending on the naming_convention.layout.sep value.
 
-    If sep == '\', then naming_convention.structure[] elements are joined as a multiple
-    element Path
-    else, the elements are concatenated with the sep string to form a single directory.
+    If sep == '/', then naming_convention.structure[] elements are joined as a multiple element Path
+    otherwise, the elements are concatenated with the sep string to form a single directory.
 
     e.g.
-    structure: ['organisationName', 'project', 'site', 'platform']
+    layout['structure']: ['organisationName', 'project', 'site', 'platform']
     if sep == '/'
       result = <root>/organisationName/project/site/platform
 

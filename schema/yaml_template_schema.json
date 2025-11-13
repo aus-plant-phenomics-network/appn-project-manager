@@ -34,6 +34,7 @@
           "title": "Sep",
           "type": "string"
         },
+
         "default": {
           "anyOf": [
             {
@@ -118,7 +119,27 @@
           "default": "-",
           "title": "Sep",
           "type": "string"
-        }
+        },
+		"preprocess": {
+		  "type": "object",
+		  "properties": {
+          "find": {
+            "type": "string",
+            "description": "the string to find in an input filename"
+          },
+          "replace": {
+            "type": "string",
+            "description": "The string to replace what is found"
+          },
+		  "casesensitive": {
+            "type": "boolean",
+			"default": false,
+            "description": "Should the match be case sensitive?"
+          }
+          },
+          "required": ["find", "replace", "casesensitive"],
+          "additionalProperties": false
+		},
       },
       "required": [
         "components"
