@@ -15,15 +15,14 @@ from appm.exceptions import (
     UnsupportedFileExtension,
 )
 from appm.model import Project
-from appm.utils import to_flow_style, validate_path, get_logger
+from appm.utils import to_flow_style, validate_path, get_task_logger
 
 yaml = YAML()
 yaml.indent(mapping=2, sequence=4, offset=2)
 yaml.preserve_quotes = True  # optional, if you want to preserve quotes
 
 
-# shared_logger = get_logger('celery')
-from celery.utils.log import get_task_logger
+# shared_logger = get_logger(__name__, factory=celery.utils.log.get_task_logger)
 shared_logger = get_task_logger(__name__)
 
 class ProjectManager:

@@ -132,8 +132,8 @@
             "description": "The string to replace what is found"
           },
 		  "casesensitive": {
-            "type": "boolean",
-			"default": false,
+            "type": "string",
+			"default": "false",
             "description": "Should the match be case sensitive?"
           }
           },

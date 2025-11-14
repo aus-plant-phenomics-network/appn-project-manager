@@ -8,6 +8,8 @@ import zoneinfo
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from typing import Callable
+
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 from appm.exceptions import NotAFileErr, NotFoundErr
@@ -78,22 +80,39 @@ def validate_path(path: str | Path, is_file: bool = False) -> Path:
 
 
 
-def get_logger(name: str = None):
-    # Check if a shared logger exists
-    shared_logger_name = name
-    if shared_logger_name in logging.Logger.manager.loggerDict:
-        logger = logging.getLogger(shared_logger_name)
-    else:
-        # Create a local logger
-        logger = logging.getLogger(name or __name__)
-        logger.setLevel(logging.INFO)
+# def get_logger(name: str) -> logging.Logger:
+    # # Check if a shared logger exists
+    # shared_logger_name = name
+    # if shared_logger_name in logging.Logger.manager.loggerDict:
+        # logger = logging.getLogger(shared_logger_name)
+    # else:
+        # # Create a local logger
+        # logger = logging.getLogger(name or __name__)
+        # logger.setLevel(logging.INFO)
 
-        # Avoid adding handlers multiple times
-        if not logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
+        # # Avoid adding handlers multiple times
+        # if not logger.handlers:
+            # handler = logging.StreamHandler()
+            # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            # handler.setFormatter(formatter)
+            # logger.addHandler(handler)
 
-    return logger
+    # return logger
     
+
+def get_task_logger(name: str) -> logging.Logger:
+    try:
+        from celery.utils.log import get_task_logger as _gtl  # local import
+        get_celery_logger: Callable[[str], logging.Logger] = _gtl  # type: ignore[assignment]
+        return get_celery_logger(name)
+    except Exception:
+        return logging.getLogger(name)
+        
+
+# LoggerFactory = Callable[[str], logging.Logger]
+
+# def get_logger(name: str, factory: LoggerFactory | None = None) -> logging.Logger:
+    # if factory is not None:
+        # return factory(name)
+    # return logging.getLogger(name)
+

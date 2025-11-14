@@ -10,7 +10,7 @@ from ruamel.yaml import YAML
 
 from appm.__version__ import __version__
 from appm.exceptions import FileFormatMismatch
-from appm.utils import slugify, get_logger
+from appm.utils import slugify,  get_task_logger
 
 import zoneinfo
 from zoneinfo import ZoneInfo
@@ -30,8 +30,7 @@ STRUCTURES = {
     "organisationName",
 }
 
-# shared_logger = get_logger('celery')
-from celery.utils.log import get_task_logger
+# shared_logger = get_logger(__name__, factory=celery.utils.log.get_task_logger)
 shared_logger = get_task_logger(__name__)
 
 class Field(BaseModel):
@@ -196,24 +195,43 @@ class Extension(Group):
             .validate_reserved_name()
             .validate_first_field_must_be_required()
         )
-
-    def match(self, name: str) -> dict[str, str | None]:
+        
+    def preprocess_filename(self, name: str) -> str:
+        """"
+        Uses the template YAML file 'preprocess' section to choose find and replace 
+        strings to be used to modify an input filename.
+        
+        e.g. 2025-10-29_10-54-14_783583_horsham-jai1.bin -> 2025-10-29_10-54-14_783583_horsham_jai1.bin
+        template.yaml:
+        preprocess:
+            find: '-(?=(jai|imu|Lidar|Hyperspec|canbus))'  # finds a '-' providing it is followed by one of the strings
+            replace: '_'                                   # repalces with an '_' (if found)
+            casesensitive: 'False
+        
+        """
         find_str = ''
         replace_str = ''
         casesensitive = True
         
+        # This is the filename preprocessing regex find and replace (if needed)
         if self.preprocess:
             find_str = self.preprocess['find'].strip()
-            replace_str = self.preprocess['replace'].strip()
-            casesensitive = self.preprocess['casesensitive']
+            replace_str = self.preprocess['replace'].strip() # may be an empty string if we want to delete a string section
+            casesensitive = self.preprocess['casesensitive'].lower() in ("true", "1", "yes", "on")
         
-        if (len(find_str) > 0) and (len(replace_str) > 0):  
+        if (len(find_str) > 0):  
             if casesensitive: 
                 name_sub = re.sub(find_str, replace_str, name, flags=re.IGNORECASE)
             else:
                 name_sub  = re.sub(find_str, replace_str, name)
         else:
             name_sub = name
+            
+        return name_sub
+
+    def match(self, name: str) -> dict[str, str | None]:
+        
+        name_sub = self.preprocess_filename(name)
             
         shared_logger.debug(f'APPM:Extension.match(): self.regex: {self.regex}')
         m = re.match(self.regex, name_sub)
@@ -269,7 +287,7 @@ class DateConvert():
         else:
             self.output_format = '%Y%m%d%z'
 
-    def search_timezones(self, query: str):
+    def search_timezones(self, query: str) -> list[str] :
         """ matches incomplete timezone area strings to return the full timezone code from IANA timezone database"""
         query_lower = query.lower()
 
@@ -413,7 +431,8 @@ class Layout(BaseModel):
     structure: list[str]
     mapping: dict[str, dict[str, str]] | None = None
     date_convert: dict[str, str] 
-
+    _structure_set: set[str]
+    
     @classmethod
     def from_list(cls, value: list[str]) -> Layout:
         return cls(structure=value)
@@ -422,9 +441,9 @@ class Layout(BaseModel):
     def structure_set(self) -> set[str]:
         return self._structure_set
 
-    @property
-    def date_convert_obj(self) -> DateConvert:
-        return self._date_convert_obj
+    # @property
+    # def date_convert_obj(self) -> DateConvert:
+        # return self._date_convert_obj
         
     @model_validator(mode="after")
     def validate_layout(cls, self: Self) -> Self:
@@ -433,6 +452,19 @@ class Layout(BaseModel):
             raise ValueError(
                 f"Mapping keys must be a subset of structure. Mapping keys: {set(self.mapping.keys())}, structure: {self.structure}"
             )
+        
+        dc = DateConvert(self.date_convert) 
+        base_tz = dc.base_timezone
+        output_tz = dc.output_timezone
+        
+        output_tz_found = dc.search_timezones(output_tz)
+        if len(output_tz_found) == 0:
+            raise ValueError(f"validate_layout(): Input requested timezone: {output_tz} was not found as valid.")
+        
+        base_tz_found = dc.search_timezones(base_tz)
+        if len(base_tz_found) == 0:
+            raise ValueError(f"validate_layout(): Input base timezone: {base_tz} was not found as valid.")
+        
         
         shared_logger.debug(f'APPM: Layout.validate_layout(): self: {self}')
             
@@ -446,15 +478,16 @@ class Layout(BaseModel):
                 
         """
         result: list[str] = []
-        component_date: str = None
-        component_time: str = None
-        local_date_time: str
+        component_date: str 
+        component_time: str | None
         
         # loop through once
         for key in self.structure:
             value = components.get(key)
             shared_logger.debug(f'APPM: Layout.get_path(): {key} : {value}')
-            if key == 'date':
+            if key == 'date':                
+                if value is None:
+                    raise ValueError("APPM: Layout.get_path(): components['date'] is required")
                 component_date = value
             
         # This ensures the time component is found, even if it is not 
@@ -462,9 +495,11 @@ class Layout(BaseModel):
         timezone_convert = True
         if 'time' in components.keys():
             component_time = components.get('time')
+            if component_time is None:
+                component_time = '00-00-00'
         else:
             timezone_convert = False
-            converted_date = component_date
+            converted_date = component_date  # default date is the one found in the filename
             shared_logger.debug(f'APPM: Layout.get_path(): No time key in file:components, not converting timezones')
  
         if timezone_convert:
@@ -474,7 +509,7 @@ class Layout(BaseModel):
             base_tz = dc.base_timezone
             output_tz = dc.output_timezone
             # date_format_in = "%Y-%m-%d %H-%M-%S"
-            # date_format_out = "%Y-%m-%d"
+            # date_format_out = "%Y%m%d%z"
             date_format_in  = dc.input_format
             date_format_out = dc.output_format
             converted_date  = dc.convert_date_timezone(date_str, date_format_in, date_format_out,  base_tz , output_tz)
