@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=../schema/yaml_template_schema.json
+#
+# Output format is deried from the project: https://github.com/ArdenB/APPN_GenricFileStorage 
+# Have a look at: 
+# https://github.com/ArdenB/APPN_GenricFileStorage/blob/main/NodeSummary.yaml
+#
+# This template has an output directory structure like the following:
+#
+# structure: ['organisationName', 'project', 'site', 'platform']
+#
+#              organisationName (node: AU)
+#                 └── project  (project: 2025_SIFOzBarley)
+#                        └── site  (site: Roseworthy)
+#                             └── platform  ( phenomate | amiga | Gobi)  <---  here
+#                                  └── date    (date: 20250820  <--> 2025-08-20)
+#                                        └── procLevel (processing level: T0-raw)
+#                                              └── sensor (jai | RGB)
+#
+#######################
+#
+# An example derived from input filename: 2025-10-29_10-54-14_783583_horsham_jai1.bin
+#
+# Inputs from protobuf file filename:
+#  date    = 2025-10-29 
+#  time    = 10-54-14
+#  ms      = 783583
+#  site_fn = horsham
+#  sensor  = jai
+#   
+# Inputs from Phenomate GUI. These are names that can be referenced in the structure lists.
+#  platform = phenomate_1
+#  project  = 2025_SIFOzBarley   ------------> will be defined in the GUI as YYYY_ProjectName 
+#  site = birdcage     
+#  summary  = October Barley        
+#  year = 2025
+#  internal = T | F
+#  researcherName = Josh         ------------>  saved to metadata.json in project directory structure 
+#  organisationName = Adelaide   ------------>  saved to metadata.json in project directory structure
+#
+# Final output structure:
+#  <root>/adelaide/2025_sifozbarley/roseworthy/phenomate_1/20251029+0930/T0-raw/jai
+
+version: 0.0.10
+naming_convention:
+  # Use `sep: "/"` to specify elements as separate 
+  #   directories : <root>/organisationName/project/site/platform
+  # or any other string e.g. `sep: "_"` to concatenate all elements into 
+  #   a single directory name : <root>/organisationName_project_site_platform
+  sep: "/"
+  structure: ['organisationName', 'project', 'site', 'platform']
+layout:
+  structure: [  'date', 'procLevel', 'sensor' ]
+  mapping:
+    procLevel:
+      raw: 'T0-raw'
+      proc: 'T1-proc'
+      trait: 'T2-trait'
+  date_convert:
+    base_timezone: 'UTC'
+    output_timezone: 'Australia/Adelaide'
+    input_format: '%Y-%m-%d %H-%M-%S'  # concatenated file:components:components: 'date' and 'time'
+    output_format: '%Y%m%d%z'
+file:
+  "bin":
+    sep: "_"
+    preprocess:
+      find: '-(?=(jai|imu|Lidar|Hyperspec|canbus))'
+      replace: '_'
+      casesensitive: 'False'
+    default:
+      procLevel: raw
+    components:
+      - sep: "_"
+        components:
+          - ['date', '\d{4}-\d{2}-\d{2}']
+          - ['time', '\d{2}-\d{2}-\d{2}']
+      - ['ms', '\d{6}']
+      - ['site_fn', '[^_.]+']
+      - ['sensor', '[^_.]+']
+      - name: 'procLevel'
+        pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
+        required: false
