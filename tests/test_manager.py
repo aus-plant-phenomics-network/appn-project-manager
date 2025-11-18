@@ -19,8 +19,8 @@ MakeLayoutT = MakeFileNameT
 @pytest.fixture
 def default_components() -> dict[str, str | None]:
     return {
-        "date": "20201010",
-        "time": "101010",
+        "date": "2020-10-10",
+        "time": "10-10-10",
         "site": "adelaide",
         "sensor": "lidar",
         "trial": "alpha",

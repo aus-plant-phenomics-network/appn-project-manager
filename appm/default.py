@@ -1,5 +1,5 @@
 DEFAULT_TEMPLATE = {
-    "version": "0.1.0",
+    "version": "0.1.1",
     "naming_convention": {
         "sep": "/",
         "structure": [
@@ -21,7 +21,7 @@ DEFAULT_TEMPLATE = {
     "file": {
         "bin": {
             "sep": "_",
-            "preprocess": {"find": "-(?=(jai|imu|Lidar|Hyperspec))", "replace": "", "casesensitive": "false" },
+            "preprocess": {"find": "-(?=(jai|imu|Lidar|Hyperspec))", "replace": "_", "casesensitive": "false" },
             "default": {"procLevel": "raw"},
             "components": [
                 {

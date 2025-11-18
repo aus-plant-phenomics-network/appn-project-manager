@@ -83,7 +83,7 @@ template will output files to the following directory:
 jai1/2025-08-14/test2/T0-raw
 
 ```
-as per the ```layout```  format specified in the file:
+as per the ```layout```  format specified in the file: 
 ```
 structure: ['sensor', 'date', 'trial', 'procLevel']
 ```
@@ -117,6 +117,12 @@ N.B. If files are added to the project that use an explicit version number, then
 to ```.bumpmyversion.toml``` along with the rules.
 
 Use the tool as follows:
+1. set the current version in ```.bumpmyversion.toml```
+e.g.
+```
+current_version = "0.1.1"
+```
+Set the bumpwhat value and run the ```bump-my-version``` command:
 ```
 # uv run bump-my-version -h
 
