@@ -1,46 +1,59 @@
 # yaml-language-server: $schema=../schema/yaml_template_schema.json
 #
-# Output format is deried from the project: https://github.com/ArdenB/APPN_GenricFileStorage 
-# Have a look at: 
-# https://github.com/ArdenB/APPN_GenricFileStorage/blob/main/NodeSummary.yaml
-#
 # This template has an output directory structure like the following:
-#
-# structure: ['organisationName', 'project', 'site', 'platform']
-#
-#              organisationName (node: AU)
-#                 └── project  (project: 2025_SIFOzBarley)
+# 
+# naming_convention:
+#   structure: ['organisationName', 'project', 'site', 'platform']
+# layout: 
+#   structure: [  'date', 'procLevel', 'sensor' ]
+# 
+# 
+#              organisationName (node: adelaide-university)
+#                 └── project  (project: 2025_sifozbarley)
 #                        └── site  (site: Roseworthy)
 #                             └── platform  ( phenomate | amiga | Gobi)  <---  here
-#                                  └── date    (date: 20250820  <--> 2025-08-20)
+#                                  └── date    (date: 20250820+0930  <--> 2025-08-20)
 #                                        └── procLevel (processing level: T0-raw)
-#                                              └── sensor (jai | RGB)
+#                                              └── sensor (jai etc.)
+#
+#
+# Output format is the current APPN standard format and is derived from the project:
+#   https://github.com/ArdenB/APPN_GenricFileStorage 
+# Have a look at: 
+#   https://github.com/ArdenB/APPN_GenricFileStorage/blob/main/NodeSummary.yaml
 #
 #######################
 #
-# An example derived from input filename: 2025-10-29_10-54-14_783583_horsham_jai1.bin
+# The output directory structure is derived from two sources:
+# 1. The Phenomate GUI 'Project' page
+# 2. The data filename - which is typically a protobuffer '.bin' file
+#
+# An example derived from input filename: 2025-10-29_10-54-14_783583_birdcage_jai1.bin
+#
+# Inputs from Phenomate GUI. These are names that can be referenced in the structure lists.
+#  platform = phenomate_1
+#  project  = 2025_SIFOzBarley   ----------> will be defined in the GUI as YYYY_ProjectName
+#  site = birdcage     
+#  summary  = October Barley        
+#  year = 2025                   
+#  internal = T | F
+#  researcherName = Josh         ------------>  saved to metadata.json in project directory structure 
+#  organisationName = Adelaide University   ------------>  saved to metadata.json in project directory structure
 #
 # Inputs from protobuf file filename:
 #  date    = 2025-10-29 
 #  time    = 10-54-14
 #  ms      = 783583
-#  site_fn = horsham
+#  site_fn = birdcage
 #  sensor  = jai
 #   
-# Inputs from Phenomate GUI. These are names that can be referenced in the structure lists.
-#  platform = phenomate_1
-#  project  = 2025_SIFOzBarley   ------------> will be defined in the GUI as YYYY_ProjectName 
-#  site = birdcage     
-#  summary  = October Barley        
-#  year = 2025
-#  internal = T | F
-#  researcherName = Josh         ------------>  saved to metadata.json in project directory structure 
-#  organisationName = Adelaide   ------------>  saved to metadata.json in project directory structure
-#
-# Final output structure:
-#  <root>/adelaide/2025_sifozbarley/roseworthy/phenomate_1/20251029+0930/T0-raw/jai
 
-version: 0.0.10
+# Final output structure:
+#  <root>/adelaide-university/2025_sifozbarley/roseworthy/phenomate_1/20251029+0930/T0-raw/jai
+
+version: 0.1.0
+# The naming_convention section describes the root directory where the project data will reside.
+# The directory names must come from the Phenomate GUI 'localhost:3000/project/create' inputs fields.
 naming_convention:
   # Use `sep: "/"` to specify elements as separate 
   #   directories : <root>/organisationName/project/site/platform
@@ -48,6 +61,8 @@ naming_convention:
   #   a single directory name : <root>/organisationName_project_site_platform
   sep: "/"
   structure: ['organisationName', 'project', 'site', 'platform']
+# The layout section describes the directory where the data will be placed, 
+# after the naming_convention defined root directory.
 layout:
   structure: [  'date', 'procLevel', 'sensor' ]
   mapping:
@@ -58,13 +73,39 @@ layout:
   date_convert:
     base_timezone: 'UTC'
     output_timezone: 'Australia/Adelaide'
-    input_format: '%Y-%m-%d %H-%M-%S'  # concatenated file:components:components: 'date' and 'time'
+    input_format: '%Y-%m-%d %H-%M-%S'  # concatenated file components: 'date' and 'time'
     output_format: '%Y%m%d%z'
+# The file section describes the structure of the input filenames and
+# has sections to describe files with differing extensions (e.g. .bin and .csv)
 file:
   "bin":
     sep: "_"
+    # preprocess section allows basic find and replace of characters within a filename
+    # which can be a 'quick fix' for deviations in the filename structure used by the 
+    # Amiga collection system
+    # The example below replaces '-' with '_' but only if the '-' is followed by one 
+    # of the following strings: jai|imu|Lidar|Hyperspec
     preprocess:
-      find: '-(?=(jai|imu|Lidar|Hyperspec|canbus))'
+      find: '-(?=(jai|imu|Lidar|Hyperspec))'
+      replace: '_'
+      casesensitive: 'False'
+    default:
+      procLevel: raw
+    components:
+      - sep: "_"
+        components:
+          - ['date', '\d{4}-\d{2}-\d{2}']
+          - ['time', '\d{2}-\d{2}-\d{2}']
+      - ['ms', '\d{6}']
+      - ['site_fn', '[^_.]+']
+      - ['sensor', '[^_.]+']
+      - name: 'procLevel'
+        pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
+        required: false
+  "csv":
+    sep: "_"
+    preprocess:
+      find: '-(?=(canbus))'
       replace: '_'
       casesensitive: 'False'
     default:

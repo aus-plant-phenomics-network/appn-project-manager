@@ -30,7 +30,7 @@
           "type": "array"
         },
         "sep": {
-          "default": "-",
+          "default": "_",
           "title": "Sep",
           "type": "string"
         },
@@ -116,7 +116,7 @@
           "type": "array"
         },
         "sep": {
-          "default": "-",
+          "default": "_",
           "title": "Sep",
           "type": "string"
         },
@@ -125,10 +125,12 @@
 		  "properties": {
           "find": {
             "type": "string",
+			"default": "",
             "description": "the string to find in an input filename"
           },
           "replace": {
             "type": "string",
+			"default": "",
             "description": "The string to replace what is found"
           },
 		  "casesensitive": {
@@ -265,7 +267,7 @@
       }
     },
     "version": {
-      "default": "0.0.10",
+      "default": "0.1.0",
       "title": "Version",
       "type": "string"
     }

@@ -98,6 +98,45 @@ Programmatically this is done using the following method:
 pm.copy_file("data/20240601-120000_SiteA_SensorX_Trial1_T0-raw.csv")
 ```
 
+## Project Updating version numbers
+Version numbers follow the standard pattern of: MAJOR.MINOR.PATCH and the project
+has been configured to use the Python libray ```bump-my-version``` to help automate the
+change of version numbers that are used in the files within the project.
+  
+The following proceedures outline its use:
+  
+Make sure mump-my-version is installed
+```
+uv pip install  bump-my-version
+# add to pyproject.toml 
+uv add --dev bump-my-version
+```
+This tool uses the file ```.bumpmyversion.toml``` for configuring what files get modified.  
+
+N.B. If files are added to the project that use an explicit version number, then add the files 
+to ```.bumpmyversion.toml``` along with the rules.
+
+Use the tool as follows:
+```
+# uv run bump-my-version -h
+
+export bumpwhat=major | minor | patch
+uv run bump-my-version bump $bumpwhat
+```
+
+N.B. For YAML files used in testing, it is easier to modify them using sed
+```
+# Check the current version:
+find ./tests/fixtures -type f \( -name "*.yaml" -o -name "*.yml" \) -exec grep "version" {} +
+
+# set FINDVERSION to be the version number found in files above:
+export FINDVERSION=0.0.10
+#  set the replacement string:
+export REPVERSION=0.1.0
+find ./tests/fixtures -type f \( -name "*.yaml" -o -name "*.yml" \) -exec sed -i -e "s/$FINDVERSION/$REPVERSION/g" {} +
+
+```
+
 ## Project Structure
 - appm – Core package (template parsing, project management, utilities)
 - examples – Example YAML templates

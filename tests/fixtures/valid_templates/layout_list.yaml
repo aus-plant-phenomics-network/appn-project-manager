@@ -1,12 +1,19 @@
 # yaml-language-server: $schema=../../../schema/yaml_template_schema.json
-version: 0.0.10
+version: 0.1.0
 naming_convention:
   sep: "_"
   structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName']
 layout: ['site', 'sensor', 'date', 'trial', 'procLevel']
+  date_convert:
+    base_timezone: 'UTC'
+    output_timezone: 'Australia/Adelaide'
 file:
   "*":
     sep: "_"
+    preprocess:
+      find: ''
+      replace: ''
+      casesensitive: 'False'
     default:
       procLevel: raw
     components:
