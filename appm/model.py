@@ -474,25 +474,54 @@ class Layout(BaseModel):
         """ 
         Converts the set of keys from the layout['structure'] dictionary into nested set of Posix directories
       
-        The method will convert the date into a local timezone based on the layout['date_convert'] values.
+        The method will convert the date into a local timezone based on the layout['date_convert'] values
+        or will use the embeded timezone string found in the filename and concatenate it with the date found
+        from the filename.
+        e.g. 
+          date_convert:
+            base_timezone: 'UTC'
+            output_timezone: 'Australia/Adelaide'
+            input_format: '%Y-%m-%d %H-%M-%S'  # concatenated file components: 'date' and 'time'
+            output_format: '%Y%m%d%z'
+            
+        This processing is bespoke for the expected formats - it assumes that the date formats are
+        '-' delimited e.g. 'YYYY-MM-DD' and that the output format required is not '-' delimited. The removal
+        of the dash is part of the standardised APPN directory layout e.g. a format of '%Y%m%d%z'.
+        
+        Extra processing is required because the RS3 basestation files have a different file format to *all*
+        the other files that are returned from the Phenomate instruments.
+        
+        This code is trying to deal with 3 formats:
+        1. pre-Dec2025 Phenomate:
+           No timezone info present in filename:
+             e.g. '2025-12-17_12-39-34_293429_test-001-wed-OusterLidar.pcap'
+             
+        2. post-Dec2025:
+          Has the timezone embedded in the filename
+            e.g. '2025-12-17_12-39-34_293429_+1030_test-001-wed-OusterLidar.pcap'
+            
+        3. RS3:
+            e.g. 'rs3_appn_1_raw_20250324_223936.25B'
                 
         """
         result: list[str] = []
         component_date: str 
         component_time: str | None
         
-        # loop through once
+        # loop through once, bail out if date component is not found
         for key in self.structure:
             value = components.get(key)
             shared_logger.debug(f'APPM: Layout.get_path(): {key} : {value}')
             if key == 'date':                
                 if value is None:
-                    raise ValueError("APPM: Layout.get_path(): components['date'] is required")
+                    raise ValueError('APPM: Layout.get_path(): components[\'date\'] is required')
+                shared_logger.info(f'APPM: Layout.get_path():components[\'date\'] found = {value}')
                 component_date = value
             
         # This ensures the time component is found, even if it is not 
         # specified  in the layout['structure'] list
         timezone_convert = True
+        converted_date = ''  # have a default of an empty string
         if 'time' in components.keys():
             component_time = components.get('time')
             if component_time is None:
@@ -501,24 +530,54 @@ class Layout(BaseModel):
             timezone_convert = False
             converted_date = component_date  # default date is the one found in the filename
             shared_logger.debug(f'APPM: Layout.get_path(): No time key in file:components, not converting timezones')
+            
+        component_timezone = None
+        if 'timezone' in components.keys():
+            component_timezone = components.get('timezone')
+            if component_timezone is not None:
+                # add the filename embedded timezone string to the 
+                # 'converted_date' as it will not be converted
+                if (converted_date == component_date):
+                    converted_date += component_timezone  
+            else:
+                # component_timezone = '+0000'  # UTC time
+                # add the filename embedded timezone string to the 
+                # 'converted_date' as it will not be converted
+                if (converted_date == component_date):
+                    converted_date += '+0000'
  
-        if timezone_convert:
+        # remove the dashes if present and use the timezone information as embedded in the filename:
+        if component_timezone != None:
+            component_date = component_date.replace("-", "")
+            converted_date = component_date + component_timezone
+        elif timezone_convert :
             # '2025-08-14_06-30-03...bin' -> component_date = '2025-08-14'  component_time = '06-30-03' 
             date_str = component_date + " " + component_time
             dc = DateConvert(self.date_convert) 
             base_tz = dc.base_timezone
             output_tz = dc.output_timezone
-            # date_format_in = "%Y-%m-%d %H-%M-%S"
-            # date_format_out = "%Y%m%d%z"
+            # date_format_in = '%Y-%m-%d %H-%M-%S'
+            # date_format_out = '%Y%m%d%z'
             date_format_in  = dc.input_format
             date_format_out = dc.output_format
-            converted_date  = dc.convert_date_timezone(date_str, date_format_in, date_format_out,  base_tz , output_tz)
+            try: 
+                converted_date  = dc.convert_date_timezone(date_str, date_format_in, date_format_out,  base_tz , output_tz)
+            except ValueError as e:
+                shared_logger.error(f"APPM: Layout.get_path(): {e}")
+            
+            # Try a different format - It should match the RS3 base station date format
+            date_format_in  = '%Y%m%d %H%M%S'    
+            try: 
+                converted_date  = dc.convert_date_timezone(date_str, date_format_in, date_format_out,  base_tz , output_tz)
+            except ValueError as e:
+                shared_logger.error(f"APPM: Layout.get_path(): {e}")
+            
             shared_logger.info(f'APPM: Layout.get_path(): Converting timezones {base_tz} to {output_tz}')
         
         for key in self.structure:
             value = components.get(key)
             # swap the date found in the filename with the converted 
-            # date from UTC to the selected timezone
+            # date from UTC to the selected timezone, or filename embedded date and timezone
             if key == 'date':
                 value = converted_date
                 
@@ -527,7 +586,7 @@ class Layout(BaseModel):
                 
             if value is None:
                 raise ValueError(
-                    f"None value for key: {key}. Either set a default for Extension definition, change Extension pattern to capture key value, or rename file."
+                    f'None value for key: {key}. Either set a default for Extension definition, change Extension pattern to capture key value, or rename file.'
                 )
             result.append(value)
         return "/".join(result)

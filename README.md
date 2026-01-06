@@ -51,7 +51,7 @@ naming_convention:
   sep: "_"
   structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName']
 layout:
-  structure: ['sensor', 'date', 'trial', 'procLevel']
+  structure: ['sensor', 'date', 'timezone', 'trial', 'procLevel']
   mapping:
     procLevel:
       raw: 'T0-raw'
@@ -69,6 +69,7 @@ file:
           - ['time', '\d{2}-\d{2}-\d{2}']
       - ['ms', '\d{6}']
       - ['dateshort', '\d{4}']
+	  - ['timezone', '^[+-]\d{4}']
       - ['trial', '[^_.]+']
       - ['sensor', '[^_.]+']
       - name: 'procLevel'
@@ -85,11 +86,11 @@ jai1/2025-08-14/test2/T0-raw
 ```
 as per the ```layout```  format specified in the file: 
 ```
-structure: ['sensor', 'date', 'trial', 'procLevel']
+structure: ['sensor', 'date', 'timezone', 'trial', 'procLevel']
 ```
 and the file(s) will have the name:
 ```
-2025-08-14_06-30-03_393242_0814_test2_jai1_0_preproc-0.jpeg
+2025-08-14_06-30-03_393242_+1030_test2_jai1_0_preproc-0.jpeg
 ```
 
 Programmatically this is done using the following method:
@@ -141,6 +142,39 @@ export FINDVERSION=0.0.10
 export REPVERSION=0.1.0
 find ./tests/fixtures -type f \( -name "*.yaml" -o -name "*.yml" \) -exec sed -i -e "s/$FINDVERSION/$REPVERSION/g" {} +
 
+```
+
+## Post bump version tasks
+After a version update the package can be published to PyPi:
+```bash
+rm -fr ./dist
+uv build
+uv publish # requires a token from PyPi - see .pypirc file
+```
+  
+Now setup the ```Phenomate``` project repository telling it about the new version -
+1. Edit ```pyproject.toml``` and change the "appm>=X.Y.Z" dependency to the latest version.
+2. Then run:
+```
+uv lock
+```
+
+N.B. If installing into the Docker application, first comment out the local installation
+path in ```pyproject.toml```  
+
+```
+#[tool.uv.sources]
+# phenomate-core = { path = "../phenomate-core" }
+# appm = { path = "../appn-project-manager" }
+```
+and then rebuild the the docker container:
+```
+docker compose up -d --force-recreate --build celery_worker
+```
+
+Otherwise, just reinstall the new package into the uv virtual environemt:
+```bash
+make install-local-appm  # this runs uv pip install ${LOCAL_APPM}
 ```
 
 ## Project Structure
