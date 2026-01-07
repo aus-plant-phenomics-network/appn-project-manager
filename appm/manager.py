@@ -54,8 +54,36 @@ class ProjectManager:
             name (str): file name
 
         Raises:
-            UnsupportedFileExtension: the metadata does not define an
+            UnsupportedFileExtension: the template file metadata does not define an
             extension declaration for the file's extension.
+            
+            e.g. Each file type to be processed should have an entry in the "file:' section 
+            of the yaml template file, such as, for csv files (with specific canbus preprocessing):
+        file:    
+            "csv":
+                sep: "_"
+                preprocess:
+                  find: '-(?=(canbus))'
+                  replace: '_'
+                  casesensitive: 'False'
+                default:
+                  procLevel: raw
+                components:
+                  - sep: "_"
+                    components:
+                      - ['date', '\\d{4}-\\d{2}-\\d{2}']
+                      - ['time', '\\d{2}-\\d{2}-\\d{2}']
+                  - ['ms', '\\d{6}']
+                  - name: 'timezone'
+                    pattern: '[+-]\\d{4}'
+                    required: false
+                  - ['site_fn', '[^_.]+']
+                  - ['sensor', '[^_.]+']
+                  - name: 'procLevel'
+                    pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
+                    required: false
+                    
+            The above creates and entry in the self.metadata.file list
 
         Returns:
             dict[str, str]: key value dictionary of the field component
@@ -64,8 +92,12 @@ class ProjectManager:
         ext = name.split(".")[-1]
         if ext in self.handlers:
             return self.handlers[ext].match(name)
+        # The '*' is a catch all, but it has to be defined in the template.yaml file and because there is a second round of 
+        # file copying in phenomate-core process.py to copy files of the same timestamp (but different file extension) the catch all
+        # will repeat a transfer (or more likely fail as the filename starucure is not necessarily the "agreed" standard format.
         if "*" in self.handlers:
             return self.handlers["*"].match(name)
+            
         raise UnsupportedFileExtension(str(ext))
 
     def get_file_placement(self, name: str) -> str:
@@ -86,7 +118,7 @@ class ProjectManager:
         """
         layout = self.metadata.parsed_layout
         groups = self.match(name)
-        return layout.get_path(groups)
+        return layout.get_path(groups)  # Layout::get_path() is defined in file: model.py
 
     def init_project(self) -> None:
         """Create a project:

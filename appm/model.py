@@ -233,17 +233,18 @@ class Extension(Group):
         
         name_sub = self.preprocess_filename(name)
             
-        shared_logger.debug(f'APPM:Extension.match(): self.regex: {self.regex}')
+        shared_logger.info(f'APPM:Extension.match(): self.regex: {self.regex}')
+        shared_logger.info(f'APPM:Extension.match(): name_sub  : {name_sub}')
         m = re.match(self.regex, name_sub)
         if not m:
             raise FileFormatMismatch(f"Name: {name_sub}. Pattern: {self.regex}")
         result = m.groupdict()
         if self.default:
             for k, v in self.default.items():
-                shared_logger.debug(f'APPM:Extension.match() self.default.items(): self: {k}  {v}')
+                shared_logger.info(f'APPM:Extension.match() self.default.items(): self: {k}  {v}')
                 if result.get(k) is None:
                     result[k] = v
-        shared_logger.debug(f'APPM:Extension.match(): result: {result}')
+        shared_logger.info(f'APPM:Extension.match(): result: {result}')
         return result
 
 
@@ -551,28 +552,36 @@ class Layout(BaseModel):
             component_date = component_date.replace("-", "")
             converted_date = component_date + component_timezone
         elif timezone_convert :
-            # '2025-08-14_06-30-03...bin' -> component_date = '2025-08-14'  component_time = '06-30-03' 
+            # N.B. This currently hard codes a second date_format_in  (== dc.input_format), however, the 
+            # template.yaml Layout section could accept a list of formats and test each one to find a match.
+            # '2025-08-14_06-30-03...bin' -> component_date = '2025-08-14'  component_time = '06-30-03'             
             date_str = component_date + " " + component_time
             dc = DateConvert(self.date_convert) 
+            shared_logger.info(f'APPM: Layout.get_path(): Converting timezones {dc.base_timezone} to {dc.output_timezone}')
             base_tz = dc.base_timezone
             output_tz = dc.output_timezone
             # date_format_in = '%Y-%m-%d %H-%M-%S'
             # date_format_out = '%Y%m%d%z'
             date_format_in  = dc.input_format
             date_format_out = dc.output_format
+            shared_logger.info(f'APPM: Layout.get_path(): Using date_format_in = {date_format_in}')
             try: 
                 converted_date  = dc.convert_date_timezone(date_str, date_format_in, date_format_out,  base_tz , output_tz)
             except ValueError as e:
-                shared_logger.error(f"APPM: Layout.get_path(): {e}")
+                shared_logger.error(f"APPM: Layout.get_path() Error: {e}")
             
-            # Try a different format - It should match the RS3 base station date format
-            date_format_in  = '%Y%m%d %H%M%S'    
-            try: 
-                converted_date  = dc.convert_date_timezone(date_str, date_format_in, date_format_out,  base_tz , output_tz)
-            except ValueError as e:
-                shared_logger.error(f"APPM: Layout.get_path(): {e}")
+            # If the above dc.convert_date_timezone() fails then converted_date
+            # This is the hard-coded second date format. Better to add this to the Layout section as a list of values to test with.
+            if converted_date == '':
+                # Try a different format - It should match the RS3 base station date format
+                date_format_in  = '%Y%m%d %H%M%S'    
+                shared_logger.info(f'APPM: Layout.get_path(): Using date_format_int = {date_format_in}')
+                try: 
+                    converted_date  = dc.convert_date_timezone(date_str, date_format_in, date_format_out,  base_tz , output_tz)
+                except ValueError as e:
+                    shared_logger.error(f"APPM: Layout.get_path(): {e}")
             
-            shared_logger.info(f'APPM: Layout.get_path(): Converting timezones {base_tz} to {output_tz}')
+            
         
         for key in self.structure:
             value = components.get(key)

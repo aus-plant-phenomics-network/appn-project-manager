@@ -73,7 +73,7 @@ layout:
   date_convert:
     base_timezone: 'UTC'
     output_timezone: 'Australia/Adelaide'
-    input_format: '%Y-%m-%d %H-%M-%S'  # concatenated file components: 'date' and 'time'
+    input_format: '%Y-%m-%d %H-%M-%S'  # concatenated file components: 'date' and 'time' 
     output_format: '%Y%m%d%z'
 # The file section describes the structure of the input filenames and
 # has sections to describe files with differing extensions (e.g. .bin and .csv)
@@ -96,9 +96,11 @@ file:
         components:
           - ['date', '\d{4}-\d{2}-\d{2}']
           - ['time', '\d{2}-\d{2}-\d{2}']
-      - ['ms', '\d{6}']
+      - ['ms', '\d{6}']      
+      - name: 'timezone'
+        pattern: '[+-]\d{4}'
+        required: false
       - ['site_fn', '[^_.]+']
-      - ['timezone', '[+-]\d{4}']
       - ['sensor', '[^_.]+']
       - name: 'procLevel'
         pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
@@ -117,7 +119,9 @@ file:
           - ['date', '\d{4}-\d{2}-\d{2}']
           - ['time', '\d{2}-\d{2}-\d{2}']
       - ['ms', '\d{6}']
-      - ['timezone', '[+-]\d{4}'
+      - name: 'timezone'
+        pattern: '[+-]\d{4}'
+        required: false
       - ['site_fn', '[^_.]+']
       - ['sensor', '[^_.]+']
       - name: 'procLevel'
@@ -137,69 +141,29 @@ file:
           - ['date', '\d{4}-\d{2}-\d{2}']
           - ['time', '\d{2}-\d{2}-\d{2}']
       - ['ms', '\d{6}']
-      - ['timezone', '[+-]\d{4}'
+      - name: 'timezone'
+        pattern: '[+-]\d{4}'
+        required: false
       - ['site_fn', '[^_.]+']
       - ['sensor', '[^_.]+']
       - name: 'procLevel'
         pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
-        required: 
+        required: false
   "25B":
     sep: "_"
     preprocess:
       find: ''
-      replace: ''
+      replace: '_'
       casesensitive: 'False'
     default:
       procLevel: raw
     components:
-      - sep: "_"
       - ['sensor', '[^_.]+']
       - ['appn', '[^_.]+']
       - ['num', '[^_.]+']
-      - ['raw', '[^_.]+']
+      - ['raw', '[^_.]+']      
+      - sep: ""
         components:
           - ['date', '\d{4}\d{2}\d{2}']
           - ['time', '\d{2}\d{2}\d{2}']
-      - name: 'procLevel'
-        pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
-        required: false
-  "25O":
-    sep: "_"
-    preprocess:
-      find: ''
-      replace: ''
-      casesensitive: 'False'
-    default:
-      procLevel: raw
-    components:
-      - sep: "_"
-      - ['sensor', '[^_.]+']
-      - ['appn', '[^_.]+']
-      - ['num', '[^_.]+']
-      - ['raw', '[^_.]+']
-        components:
-          - ['date', '\d{4}\d{2}\d{2}']
-          - ['time', '\d{2}\d{2}\d{2}']
-      - name: 'procLevel'
-        pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
-        required: false
-  "25P":
-    sep: "_"
-    preprocess:
-      find: ''
-      replace: ''
-      casesensitive: 'False'
-    default:
-      procLevel: raw
-    components:
-      - sep: "_"
-      - ['sensor', '[^_.]+']
-      - ['appn', '[^_.]+']
-      - ['num', '[^_.]+']
-      - ['raw', '[^_.]+']
-        components:
-          - ['date', '\d{4}\d{2}\d{2}']
-          - ['time', '\d{2}\d{2}\d{2}']
-      - name: 'procLevel'
-        pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
-        required: false
+        
