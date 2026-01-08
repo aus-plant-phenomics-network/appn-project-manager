@@ -149,6 +149,9 @@ file:
       - name: 'procLevel'
         pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
         required: false
+  # This data is from RS3 basestation and the other files 
+  # that match the timestamp will be copied as 'extra' 
+  # files (e.g. .25P and .25O files)
   "25B":
     sep: "_"
     preprocess:
