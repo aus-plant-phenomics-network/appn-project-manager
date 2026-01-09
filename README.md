@@ -28,13 +28,16 @@ Create a YAML template describing your project's structure, naming conventions, 
 from appm import ProjectManager
 
 pm = ProjectManager.from_template(
-    root="projects",
+    root="/mnt/tpa_field_data/",
+	template="examples/template.yaml",
+	project="2025_OzBarley",
     year=2024,
+	platform="phenomate_1",
+	site="roseworthy",
     summary="Wheat yield trial",
     internal=True,
     researcherName="Jane Doe",
-    organisationName="Plant Research Org",
-    template="examples/template.yaml"
+    organisationName="Adelaide University",
 )
 pm.init_project()
 
@@ -44,21 +47,31 @@ pm.init_project()
 
 Files are automatically placed in the correct directory based on the template used.
 
-An example template file:
+An example `template.yaml` file:
 ```json
-version: 0.0.8
+version: 0.1.1
 naming_convention:
-  sep: "_"
-  structure: ['year', 'summary', 'internal', 'researcherName', 'organisationName']
+  # Use `sep: "/"` to specify elements as separate 
+  #   directories : <root>/organisationName/project/site/platform
+  # or any other string e.g. `sep: "_"` to concatenate all elements into 
+  #   a single directory name : <root>/organisationName_project_site_platform
+  sep: "/"
+  structure: ['organisationName', 'project', 'site', 'platform']
 layout:
-  structure: ['sensor', 'date', 'timezone', 'trial', 'procLevel']
+  structure: [  'date', 'procLevel', 'sensor' ]
   mapping:
     procLevel:
       raw: 'T0-raw'
       proc: 'T1-proc'
       trait: 'T2-trait'
+  date_convert:
+    base_timezone: 'UTC'
+    output_timezone: 'Australia/Adelaide'
+    input_format: '%Y-%m-%d %H-%M-%S'  # concatenated file components: 'date' and 'time' 
+    output_format: '%Y%m%d%z'
 file:
-  "*":
+  # Individual processing is availble for specific file extensions (except json, which is a special case)
+  "bin":
     sep: "_"
     default:
       procLevel: raw
@@ -68,8 +81,9 @@ file:
           - ['date', '\d{4}-\d{2}-\d{2}']
           - ['time', '\d{2}-\d{2}-\d{2}']
       - ['ms', '\d{6}']
-      - ['dateshort', '\d{4}']
-	  - ['timezone', '^[+-]\d{4}']
+	  - name: 'timezone'
+        pattern: '[+-]\d{4}'
+        required: false
       - ['trial', '[^_.]+']
       - ['sensor', '[^_.]+']
       - name: 'procLevel'
@@ -78,25 +92,28 @@ file:
 
 ```
 
-Using an input file named: ```2025-08-14_06-30-03_393242_0814_test2_jai1_0.bin``` the above
+Using an input file named: ```2025-08-14_06-30-03_393242_+1030_extra-site-details_jai1.bin``` the above
 template will output files to the following directory:
 ```
-jai1/2025-08-14/test2/T0-raw
+/mnt/tpa_field_data/adelaide-university/2025_ozbarley/roseworthy/phenomate_1/20250814+1030/T0-raw/jai1
 
 ```
 as per the ```layout```  format specified in the file: 
 ```
-structure: ['sensor', 'date', 'timezone', 'trial', 'procLevel']
+structure: ['organisationName', 'project', 'site', 'platform']
 ```
-and the file(s) will have the name:
+
+N.B. Input strings for path creation are standardized by converting to lowercase and substituting spaces with dashes.
+  
+The extracted files (from JAI phenomate-core processing) will have the name:
 ```
-2025-08-14_06-30-03_393242_+1030_test2_jai1_0_preproc-0.jpeg
+2025-08-14_06-30-03_393242_+1030_extra-site-details_jai1_preproc-<timestamp>.tiff
 ```
 
 Programmatically this is done using the following method:
 
 ```py
-pm.copy_file("data/20240601-120000_SiteA_SensorX_Trial1_T0-raw.csv")
+pm.copy_file("<src_dir>/2025-08-14_06-30-03_393242_+1030_extra-site-details_jai1.bin")
 ```
 
 ## Project Updating version numbers

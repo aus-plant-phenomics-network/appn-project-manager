@@ -156,7 +156,7 @@ file:
     sep: "_"
     preprocess:
       find: ''
-      replace: '_'
+      replace: ''
       casesensitive: 'False'
     default:
       procLevel: raw
