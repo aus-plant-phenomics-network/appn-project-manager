@@ -24,7 +24,7 @@ Create a YAML template describing your project's structure, naming conventions, 
 
 2. Initialize a Project
 
-```py
+```python
 from appm import ProjectManager
 
 pm = ProjectManager.from_template(
@@ -39,13 +39,14 @@ pm = ProjectManager.from_template(
     researcherName="Jane Doe",
     organisationName="Adelaide University",
 )
-pm.init_project()
+print(str(pm.location)) # This prints the directory that will be created for the project data.
+pm.init_project()  # This creates the directory and writes a metadata.yaml file (for reloading the project)
 
 ```
 
 3. Add Files
 
-Files are automatically placed in the correct directory based on the template used.
+Files are automatically placed in the a directory based on the template used.
 
 An example `template.yaml` file:
 ```json
@@ -98,7 +99,7 @@ template will output files to the following directory:
 /mnt/tpa_field_data/adelaide-university/2025_ozbarley/roseworthy/phenomate_1/20250814+1030/T0-raw/jai1
 
 ```
-as per the ```layout```  format specified in the file: 
+as per the ```layout```  format specified in the `template.yaml` file: 
 ```
 structure: ['organisationName', 'project', 'site', 'platform']
 ```

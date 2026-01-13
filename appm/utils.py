@@ -33,7 +33,7 @@ def slugify(text: str) -> str:
     Returns:
         str: slug
     """
-    text = text.lower()
+    # text = text.lower()
     # Replace non slug characters
     text = re.sub(r"[^\w\s-]", "", text, flags=re.UNICODE)
     # Replace spaces with hyphens
