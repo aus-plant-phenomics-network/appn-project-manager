@@ -45,7 +45,7 @@
 #  time     = 10-54-14
 #  ms       = 783583
 #  timezone = +1030  
-#  site_fn  = birdcage
+#  site_fn  = Birdcage
 #  sensor   = jai1
 #   
 # Final output structure:
@@ -170,4 +170,5 @@ file:
           - ['date', '\d{4}\d{2}\d{2}']
           - ['time', '\d{2}\d{2}\d{2}']
         
+
 
