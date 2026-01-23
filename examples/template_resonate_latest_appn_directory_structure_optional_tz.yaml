@@ -33,7 +33,7 @@
 # Inputs from Phenomate GUI. These are names that can be referenced in the structure lists.
 #  platform = phenomate_1
 #  project  = 2025_SIFOzBarley   ----------> will be defined in the GUI as YYYY_ProjectName
-#  site = birdcage     
+#  site = Birdcage     
 #  summary  = October Barley        
 #  year = 2025                   
 #  internal = T | F
@@ -46,10 +46,10 @@
 #  ms       = 783583
 #  timezone = +1030  
 #  site_fn  = birdcage
-#  sensor   = jai
+#  sensor   = jai1
 #   
 # Final output structure:
-#  <root>/adelaide-university/2025_sifozbarley/roseworthy/phenomate_1/20251029+0930/T0-raw/jai
+#  <root>/Adelaide-University/2025_SIFOzBarley/Birsdcage/phenomate_1/20251029+0930/T0-raw/jai
 
 version: 0.1.2
 # The naming_convention section describes the root directory where the project data will reside.
@@ -170,3 +170,4 @@ file:
           - ['date', '\d{4}\d{2}\d{2}']
           - ['time', '\d{2}\d{2}\d{2}']
         
+
