@@ -94,16 +94,19 @@ class ProjectManager:
             return self.handlers[ext].match(name)
         # The '*' is a catch all, but it has to be defined in the template.yaml file and because there is a second round of 
         # file copying in phenomate-core process.py to copy files of the same timestamp (but different file extension) the catch all
-        # will repeat a transfer (or more likely fail as the filename starucure is not necessarily the "agreed" standard format.
+        # will repeat a transfer (or more likely fail as the filename structure is not necessarily the "agreed" standard format.
         if "*" in self.handlers:
             return self.handlers["*"].match(name)
-            
+        
+        
+        
+        
         raise UnsupportedFileExtension(str(ext))
 
     def get_file_placement(self, name: str) -> str:
         """Find location where a file should be placed.
 
-        Determination is based on the metadata's layout field,
+        Determination is based on the metadata's 'layout' field,
         the file extension format definition, and the file name.
         More concretely, field component - values are matched using the
         RegEx defined in format. Fields that match layout values will be
@@ -134,7 +137,7 @@ class ProjectManager:
         """Save the current metadata to the project location"""
         
         metadata_path = self.location / self.METADATA_NAME
-        shared_logger.debug(f'APPM: ProjectManager.save_metadata() Saving metadat.json file to: {metadata_path}')
+        shared_logger.info(f'APPM: ProjectManager.save_metadata() Saving metadata.json file to: {metadata_path}')
         
         with metadata_path.open("w") as file:
             data = self.metadata.model_dump(mode="json")
@@ -159,7 +162,7 @@ class ProjectManager:
 
         dst_path.mkdir(parents=True, exist_ok=True)
         
-        shared_logger.debug(f'APPM: ProjectManager.copy_file() copying data to: {dst_path}')
+        shared_logger.info(f'APPM: ProjectManager.copy_file() copying data to: {dst_path}')
         # Write the source path and filename to a file in the destination directory
         # This is needed so as to copy other non '.bin' files associated with the file,
         # particularly for IMU processing which currently (13/10/2025) requires the
@@ -205,6 +208,7 @@ class ProjectManager:
         Returns:
             ProjectManager: ProjectManager object
         """
+        shared_logger.info(f'APPM: ProjectManager.from_template() {template}')
         if isinstance(template, str | Path):
             metadata_path = Path(template)
             metadata_path = validate_path(template)
@@ -247,13 +251,13 @@ class ProjectManager:
         Returns:
             ProjectManager: ProjectManager object 
         """
-        shared_logger.debug(f'APPM: ProjectManager.load_project() {project_path}')
+        shared_logger.info(f'APPM: ProjectManager.load_project() {project_path}')
         project_path = validate_path(project_path)
         metadata_path = (
             project_path / cls.METADATA_NAME if not metadata_name else project_path / metadata_name
         )
         
-        metadata_path = validate_path(metadata_path)
+        metadata_path = validate_path(metadata_path, is_file=True)
         # 
         with metadata_path.open("r") as file:
             metadata = yaml.load(file)

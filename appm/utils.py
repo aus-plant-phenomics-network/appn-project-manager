@@ -8,6 +8,9 @@ import zoneinfo
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import time
+import errno
+
 from typing import Callable
 
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
@@ -72,33 +75,12 @@ def validate_path(path: str | Path, is_file: bool = False) -> Path:
         Path: validated path
     """
     _path = Path(path)
-    if not _path.exists():
+    if not safe_exists_with_retry(_path, retries=4):
         raise NotFoundErr(f"File not found: {path!s}")
     if is_file and not _path.is_file():
         raise NotAFileErr(f"Not a file: {path!s}")
     return _path
 
-
-
-# def get_logger(name: str) -> logging.Logger:
-    # # Check if a shared logger exists
-    # shared_logger_name = name
-    # if shared_logger_name in logging.Logger.manager.loggerDict:
-        # logger = logging.getLogger(shared_logger_name)
-    # else:
-        # # Create a local logger
-        # logger = logging.getLogger(name or __name__)
-        # logger.setLevel(logging.INFO)
-
-        # # Avoid adding handlers multiple times
-        # if not logger.handlers:
-            # handler = logging.StreamHandler()
-            # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            # handler.setFormatter(formatter)
-            # logger.addHandler(handler)
-
-    # return logger
-    
 
 def get_task_logger(name: str) -> logging.Logger:
     try:
@@ -109,10 +91,35 @@ def get_task_logger(name: str) -> logging.Logger:
         return logging.getLogger(name)
         
 
-# LoggerFactory = Callable[[str], logging.Logger]
+TRANSIENT_ERRNOS = {
+    errno.ENETDOWN,
+    errno.ENETUNREACH,
+    errno.EHOSTDOWN,
+    errno.EHOSTUNREACH,
+    errno.ESTALE,
+    errno.EBUSY,
+    errno.ETIMEDOUT,
+}
 
-# def get_logger(name: str, factory: LoggerFactory | None = None) -> logging.Logger:
-    # if factory is not None:
-        # return factory(name)
-    # return logging.getLogger(name)
+def safe_exists_with_retry(path: Path, retries: int = 2) -> bool:
+    attempt = 0
+    while True:
+        try:
+            # return os.stat(path, follow_symlinks=follow_symlinks)
+            return path.exists()
+        except FileNotFoundError:
+            return False
+        except PermissionError:
+            return False
+        except OSError as e:
+            if e.errno in TRANSIENT_ERRNOS and attempt < retries:
+                shared_logger.error(f'APPM: utils:safe_exists_with_retry(): path:{path}; retries:{retries}; {e}')
+                # jittered backoff (e.g., 200, 400, 600... ms)
+                attempt += 1
+                delay = (0.20 *  attempt) 
+                time.sleep(delay)                
+                continue
+            shared_logger.error(f'APPM: utils:safe_exists_with_retry(): path:{path}; retries:{retries}; {e}')
+            return False
+
 

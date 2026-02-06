@@ -105,6 +105,9 @@ file:
       - name: 'procLevel'
         pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
         required: false
+  # CSV data comes from Canbus records and the IMU1 
+  # instrument. The IMU also has a _GNSS.csv file that
+  # needs special processing (in the phenomate-core library)
   "csv":
     sep: "_"
     preprocess:
@@ -127,6 +130,9 @@ file:
       - name: 'procLevel'
         pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
         required: false
+  # This data is from Ouster 3D LIDAR
+  # A JSON file that match the timestamp will 
+  # also be copied as an 'extra' file
   "pcap":
     sep: "_"
     preprocess:

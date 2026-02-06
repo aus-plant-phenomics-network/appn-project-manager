@@ -157,7 +157,7 @@ find ./tests/fixtures -type f \( -name "*.yaml" -o -name "*.yml" \) -exec grep "
 # set FINDVERSION to be the version number found in files above:
 export FINDVERSION=0.0.10
 #  set the replacement string:
-export REPVERSION=0.1.0
+export REPVERSION=0.2.0
 find ./tests/fixtures -type f \( -name "*.yaml" -o -name "*.yml" \) -exec sed -i -e "s/$FINDVERSION/$REPVERSION/g" {} +
 
 ```
@@ -169,7 +169,18 @@ rm -fr ./dist
 uv build
 uv publish # requires a token from PyPi - see .pypirc file
 ```
-  
+
+#### tag the release in git
+
+```
+git add --all
+git commit -m "Release version 0.2.1 - adds extra tests for file system errors"
+git tag v0.4.1 -m "Release version 0.2.1 - adds extra tests for file system errors"
+git push origin main
+git push origin v0.4.1
+
+
+```
 Now setup the ```Phenomate``` project repository telling it about the new version -
 1. Edit ```pyproject.toml``` and change the "appm>=X.Y.Z" dependency to the latest version.
 2. Then run:
