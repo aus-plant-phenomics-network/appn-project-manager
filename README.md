@@ -175,9 +175,9 @@ uv publish # requires a token from PyPi - see .pypirc file
 ```
 git add --all
 git commit -m "Release version 0.2.1 - adds extra tests for file system errors"
-git tag v0.4.1 -m "Release version 0.2.1 - adds extra tests for file system errors"
-git push origin main
-git push origin v0.4.1
+git tag v0.2.1 -m "Release version 0.2.1 - adds extra tests for file system errors"
+git push origin master
+git push origin v0.2.1
 
 
 ```
