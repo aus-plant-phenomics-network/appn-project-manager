@@ -51,7 +51,7 @@
 # Final output structure:
 #  <root>/Adelaide-University/2025_SIFOzBarley/Birsdcage/phenomate_1/20251029+0930/T0-raw/jai
 
-version: 0.1.2
+version: 0.2.1
 # The naming_convention section describes the root directory where the project data will reside.
 # The directory names must come from the Phenomate GUI 'localhost:3000/project/create' inputs fields.
 naming_convention:
@@ -177,5 +177,6 @@ file:
           - ['date', '\d{4}\d{2}\d{2}']
           - ['time', '\d{2}\d{2}\d{2}']
         
+
 
 
