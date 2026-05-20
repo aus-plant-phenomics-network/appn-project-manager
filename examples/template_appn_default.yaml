@@ -85,9 +85,9 @@ file:
     # which can be a 'quick fix' for deviations in the filename structure used by the 
     # Amiga collection system
     # The example below replaces '-' with '_' but only if the '-' is followed by one 
-    # of the following strings: jai|imu|Lidar|Hyperspec
+    # of the following strings: jai|imu|Lidar|Hyperspec|Ouster|Septentrio
     preprocess:
-      find: '-(?=(jai|imu|Lidar|Hyperspec|Ouster))'
+      find: '-(?=(jai|imu|Lidar|Hyperspec|Ouster|Septentrio))'
       replace: '_'
       casesensitive: 'False'
     default:
@@ -176,6 +176,33 @@ file:
         components:
           - ['date', '\d{4}\d{2}\d{2}']
           - ['time', '\d{2}\d{2}\d{2}']
-        
+  # The json files are typically excluded from copying
+  # although some have special processing (to include a particular sensor 
+  # JSON file see: backend\activity\service.py copy_data())
+  # and others, such as pcap and JAI files, have special processing 
+  # within the phenomate_core transfer processing classes.
+  "json":
+    sep: "_"
+    preprocess:
+      find: ''
+      replace: ''
+      casesensitive: 'False'
+    default:
+      procLevel: raw
+    components:
+      - sep: "_"
+        components:
+          - ['date', '\d{4}-\d{2}-\d{2}']
+          - ['time', '\d{2}-\d{2}-\d{2}']
+      - ['ms', '\d{6}']
+      - name: 'timezone'
+        pattern: '[+-]\d{4}'
+        required: false
+      - ['site_fn', '[^_.]+']
+      - ['sensor', '[^_.]+']
+      - name: 'procLevel'
+        pattern: 'T0-raw|T1-proc|T2-trait|raw|proc|trait'
+        required: false
+
 
 
