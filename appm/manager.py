@@ -17,6 +17,8 @@ from appm.exceptions import (
 from appm.model import Project
 from appm.utils import to_flow_style, validate_path, get_task_logger
 
+import re
+
 yaml = YAML()
 yaml.indent(mapping=2, sequence=4, offset=2)
 yaml.preserve_quotes = True  # optional, if you want to preserve quotes
@@ -157,9 +159,20 @@ class ProjectManager:
         
         # self.location
         src_path = validate_path(src_path)
-        src_placement = self.get_file_placement(src_path.name)   
-        dst_path = self.location / src_placement
+        
+         # We need some special processing for Septentrio files that have various 
+        # extensions to the 'sensor' string part
+        tpath = src_path.name
+        if 'eptentrio' in tpath:
+            match = re.findall(r'^.*?(?=septentrio-)', tpath, re.IGNORECASE)
+            tpath = match[0]+'Septentrio.bin'
+        
+        src_placement = self.get_file_placement(tpath)
+        # src_placement = self.get_file_placement(src_path.name)
+        
 
+        dst_path = self.location / src_placement
+        
         dst_path.mkdir(parents=True, exist_ok=True)
         
         shared_logger.info(f'APPM: ProjectManager.copy_file() copying data to: {dst_path}')
