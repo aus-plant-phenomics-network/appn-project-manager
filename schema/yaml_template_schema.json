@@ -267,7 +267,7 @@
       }
     },
     "version": {
-      "default": "0.2.1",
+      "default": "0.3.0",
       "title": "Version",
       "type": "string"
     }

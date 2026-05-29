@@ -148,6 +148,25 @@ class ProjectManager:
                 to_flow_style(data),
                 file,
             )
+            
+    def special_filename_processing(self, in_filename: str, 
+                                          find_str: str=r'septentrio', 
+                                          add_str: str='Septentrio.bin') -> str:
+        """ We need some special processing for Septentrio files that have various 
+         extensions to the 'sensor' string part. The processing keeps all the string before
+         and including the find_str and replaces the find_str with add_str
+         Example: Takes an in_filename like:
+            2026-05-20_15-08-38_851280_+0930_plantsUM6-Septentrio-SBF-Rinex_NavData.bin
+         and returns:
+            2026-05-20_15-08-38_851280_+0930_plantsUM6-Septentrio.bin
+        """
+        out_path = in_filename
+        if find_str in in_filename.lower():
+            re_str = str=r'^.*?(?=' + find_str + r'-)'
+            match = re.findall(re_str, in_filename, re.IGNORECASE)
+            if len(match) > 0:
+                out_path = match[0]+add_str
+        return out_path
 
     def copy_file(self, src_path: str | Path) -> Path:
         """Copy a file located at `src_path` to an appropriate
@@ -156,23 +175,11 @@ class ProjectManager:
         Args:
             src_path (str | Path): path to where src data is found
         """
-        
-        # self.location
+        # Work out the directory name to create and where the files will be placed
         src_path = validate_path(src_path)
-        
-         # We need some special processing for Septentrio files that have various 
-        # extensions to the 'sensor' string part
-        tpath = src_path.name
-        if 'eptentrio' in tpath:
-            match = re.findall(r'^.*?(?=septentrio-)', tpath, re.IGNORECASE)
-            tpath = match[0]+'Septentrio.bin'
-        
-        src_placement = self.get_file_placement(tpath)
-        # src_placement = self.get_file_placement(src_path.name)
-        
-
+        transformed_filename = self.special_filename_processing(src_path.name, r'septentrio','Septentrio.bin' )
+        src_placement = self.get_file_placement(transformed_filename)
         dst_path = self.location / src_placement
-        
         dst_path.mkdir(parents=True, exist_ok=True)
         
         shared_logger.info(f'APPM: ProjectManager.copy_file() copying data to: {dst_path}')
