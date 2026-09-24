@@ -1,6 +1,7 @@
 # /// script
 # dependencies = [
 #   "appm",
+#   "marimo>=0.25.0",
 #   "tzdata",
 # ]
 # ///
@@ -14,7 +15,7 @@ app = marimo.App(
 )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import marimo as mo
 
@@ -23,19 +24,27 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.accordion(mo.md(r"""
+    mo.md(r"""
     ## APPM Template File Demo
     This worksheet lets us test the effect of changing the `appn-project-manager` library template file used (`/tmp/template.yaml`) and view the output directory that is created using the initialised library and a specific filename structure.
 
     There is a [Wiki site](https://github.com/aus-plant-phenomics-network/appn-project-manager/wiki) that tries to explain the use of the appm library, however it is thought that interactive use of the library is a more practical way for getting to understand what parameters control the final output structure.
 
-    ### Requirements
-    This Marimo workbook is running on a github.io site here: [https://aus-plant-phenomics-network.github.io/appn-project-manager/](https://aus-plant-phenomics-network.github.io/appn-project-manager/)
-    
-    Open that page and interact with the library running in your browser.
-    It is deployed using a [GitHub action](https://github.com/aus-plant-phenomics-network/appn-project-manager/actions/workflows/deploy.yml)
-    
-    #### Run the workbook locally
+    ---
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.accordion( {"Requirements": mo.md(r"""
+
+    ## Requirements
+
+    ### Use the Github.io hosted version
+    This workbook is available here [https://aus-plant-phenomics-network.github.io/appn-project-manager/](https://aus-plant-phenomics-network.github.io/appn-project-manager/) and is run directly in you browser.
+
+    ### Local hosting of the workbook
     To run this workbook, we need the library `marimo` installed which allows us to run an interactive Python notebook.
 
     #### Install marimo
@@ -68,7 +77,7 @@ def _(mo):
       # N.B. set the variable path_to_repo in the cell below.
       ```
 
-    #### Run this marimo workbook
+    #### Run the marimo workbook
 
       ```bash
       marimo edit Phenomate-appm-marimo-notebook.py
@@ -76,8 +85,16 @@ def _(mo):
 
     ### Repository
       appn-project-manaer repository site: [github.com/aus-plant-phenomics-network/appn-project-manager](https://github.com/aus-plant-phenomics-network/appn-project-manager)
-
     ---
+    """
+    )})
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+
+    mo.accordion( {"APPN Metadata and Project Structure Discussion": mo.md(r"""
     ### APPN Field Site data/metadata standards
     The APPN nodes have a defined output directory structure for the UAV data. This directory structure is to be followed for the Phenomate data collection activities.
 
@@ -98,12 +115,11 @@ def _(mo):
     There is also a schema definition that can be used for project ***booking*** metadata that can be used to get the essential information needed to describe a project and have it collated as a project progresses. This schema is currently available here: [docs/er_diagram/er_diagram_from_tab_to_schema/jsonschema_current](https://github.com/aus-plant-phenomics-network/appn-schema/tree/main/docs/er_diagram/er_diagram_from_tab_to_schema/jsonschema_current)
 
     ---
-    """)
-    )
+    """)})
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import os
 
@@ -116,14 +132,16 @@ def _():
         path_to_repo = home_str + '/APPN/repos/appn-project-manager'  
         os.chdir(path_to_repo)
 
-    os.getcwd()
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Use the following template file writer cell to modify the input template.yaml file that will be used in the ProjectManager initialisation below:
+    ### The template.yaml file
+    The following cells allow the interactive use of the `appm` library to see how it uses project data and filename information to create a output directory structure, ready for file transfer from the set of Phenomateinstruments.
+
+    Use the following file writer cell to modify the input `template.yaml` file that is used in the ProjectManager initialisation below:
     """)
     return
 
@@ -133,28 +151,7 @@ def _():
     # This is an example template.yaml file. Modify it to see how it affects the output data structure
     # using the code cells below.
     template_file = """
-    # yaml-language-server: $schema=../schema/yaml_template_schema.json
-    #
-    # This template has an output directory structure like the following:
-    # 
-    # naming_convention:
-    #   structure: ['organisationName', 'project', 'site', 'platform']
-    #
-    #              organisationName (node: adelaide-university)
-    #                 └── project  (project: 2025_sifozbarley)
-    #                        └── site  (site: Roseworthy)
-    #                             └── platform  ( phenomate | amiga | Gobi)  
-    # layout: 
-    #   structure: [  'date', 'site_fn', 'procLevel', 'sensor'  ]
-    #
-    #                                  └── date    (date:  2025-08-20 <--> 20250820+0930  )
-    #                                        └──site_fn (run-001 etc.)
-    #                                              └── procLevel (processing level: T0-raw)
-    #                                                    └── sensor (jai etc.)
-    #
-    #
     version: 0.1.2
-
 
     # The naming_convention section describes the base directory where the project data will reside.
     # The variables available are any used in the ProjectManager.from_template() method (see example below)
@@ -239,14 +236,6 @@ def _():
     # Save the above yaml text to a file to be read by the subsequent method
     from pathlib import Path
     Path("/tmp/template_config.yaml").write_text(template_file, encoding="utf-8")
-    return Path, template_file
-
-
-@app.cell
-def _(Path, template_file):
-    # Save the above yaml text to a file to be read by the subsequent method
-    Path("/tmp/template_config.yaml").write_text(template_file, encoding="utf-8")
-
     return
 
 

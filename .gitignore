@@ -138,6 +138,9 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# Marimo
+__marimo__/
+
 # mypy
 .mypy_cache/
 .dmypy.json
