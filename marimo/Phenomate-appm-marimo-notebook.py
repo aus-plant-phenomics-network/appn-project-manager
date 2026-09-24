@@ -23,13 +23,19 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""
+    mo.accordion(mo.md(r"""
     ## APPM Template File Demo
     This worksheet lets us test the effect of changing the `appn-project-manager` library template file used (`/tmp/template.yaml`) and view the output directory that is created using the initialised library and a specific filename structure.
 
     There is a [Wiki site](https://github.com/aus-plant-phenomics-network/appn-project-manager/wiki) that tries to explain the use of the appm library, however it is thought that interactive use of the library is a more practical way for getting to understand what parameters control the final output structure.
 
     ### Requirements
+    This Marimo workbook is running on a github.io site here: [https://aus-plant-phenomics-network.github.io/appn-project-manager/](https://aus-plant-phenomics-network.github.io/appn-project-manager/)
+    
+    Open that page and interact with the library running in your browser.
+    It is deployed using a [GitHub action](https://github.com/aus-plant-phenomics-network/appn-project-manager/actions/workflows/deploy.yml)
+    
+    #### Run the workbook locally
     To run this workbook, we need the library `marimo` installed which allows us to run an interactive Python notebook.
 
     #### Install marimo
@@ -93,6 +99,7 @@ def _(mo):
 
     ---
     """)
+    )
     return
 
 
