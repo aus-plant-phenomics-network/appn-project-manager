@@ -27,7 +27,10 @@ def _(mo):
     mo.md(r"""
     ## APPM Template File Demo
     This worksheet lets us test the effect of changing the `appn-project-manager` library template file used (`/tmp/template.yaml`) and view the output directory that is created using the initialised library and a specific filename structure.
-
+    
+    ### To use this worksheet
+    Click the `play` button ▶ in the bottom right corner to run all the cells. If you modify a cell, then re-run the cell using the cell play button. The other dependent cells should re-run, however sometimes they will not if a dependency is a file that is saved and not a Python variable, so manually re-run the cells that follow.
+    
     There is a [Wiki site](https://github.com/aus-plant-phenomics-network/appn-project-manager/wiki) that tries to explain the use of the appm library, however it is thought that interactive use of the library is a more practical way for getting to understand what parameters control the final output structure.
 
     ---
