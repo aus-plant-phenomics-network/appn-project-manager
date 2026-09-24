@@ -155,9 +155,9 @@ N.B. For YAML files used in testing, it is easier to modify them using sed
 find ./tests/fixtures -type f \( -name "*.yaml" -o -name "*.yml" \) -exec grep "version" {} +
 
 # set FINDVERSION to be the version number found in files above:
-export FINDVERSION=0.0.10
+export FINDVERSION=0.3.0
 #  set the replacement string:
-export REPVERSION=0.2.0
+export REPVERSION=0.3.1
 find ./tests/fixtures -type f \( -name "*.yaml" -o -name "*.yml" \) -exec sed -i -e "s/$FINDVERSION/$REPVERSION/g" {} +
 
 ```

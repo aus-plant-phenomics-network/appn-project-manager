@@ -1,0 +1,58 @@
+name: Deploy Marimo Notebook
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Add uv to PATH
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install marimo
+        run: uv tool install marimo
+
+      - name: Echo environment
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Export notebook
+        run: |
+          cd marimo
+          marimo export html-wasm \
+            Phenomate-appm-marimo-notebook.py \
+            -o site \
+            --mode edit
+
+      - name: Add .nojekyll
+        run: touch site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: marimo/site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+
+    steps:
+      - name: Deploy
+        uses: actions/deploy-pages@v4
