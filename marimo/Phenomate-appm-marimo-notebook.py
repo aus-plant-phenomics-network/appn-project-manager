@@ -300,7 +300,7 @@ def _(mo, pm):
 @app.cell
 def _(mo, pm):
 
-    filename_csv = "2025-08-15_06-30-03_400000_jai1_run-001.csv"
+    filename_csv = "2025-08-15_06-30-03_400000_jai1_run-001.csv"  # notice, no timezone in the filename, so base_timezone conversion to output_timezone is assumed
     _mo0 = mo.md(f"filename_csv: `{filename_csv}`")
     _mo1 = mo.md(f"""This example shows the output for a `.csv` file. It has a seperate section in the `template.yaml` file, so the components may be extracted using different regex rules.  
     Using this capability, notice that the `sensor` and the `site_fn` have been switched in the filename, but the directory output is the same as the `.bin` file above.  
