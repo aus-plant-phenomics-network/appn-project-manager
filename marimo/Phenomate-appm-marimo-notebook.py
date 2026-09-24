@@ -187,7 +187,7 @@ def _():
     # has sections to describe files with differing extensions (e.g. below are for .bin and .csv)
     file:
       "bin":
-        sep: "_"
+        sep: "_"                               # This is the separator that specifies where a filename is broken into sections
         # preprocess section allows basic find and replace of characters within a filename
         # which can be a 'quick fix' for deviations in the filename structure used by the 
         # Amiga collection system
