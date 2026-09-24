@@ -1,6 +1,7 @@
 # /// script
 # dependencies = [
 #   "appm",
+#   "tzdata",
 # ]
 # ///
 
